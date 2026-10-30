@@ -1,4 +1,4 @@
-# Validation — 0.1.0
+# Validation
 
 ## Workflow icon update — 0.1.1
 
