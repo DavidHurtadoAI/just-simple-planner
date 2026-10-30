@@ -657,11 +657,11 @@ export class PlannerView extends ItemView implements HoverParent {
         const foreign = document.createElementNS(SVG, 'foreignObject');
         foreign.setAttribute('x', '-11'); foreign.setAttribute('y', '-11');
         foreign.setAttribute('width', '22'); foreign.setAttribute('height', '22');
-        const button = document.createElement('button');
+        const button = foreign.createEl('button');
         button.type = 'button'; button.className = 'jsp-edge-disconnect';
         button.setAttribute('aria-label', `Disconnect ${entry.title} from ${this.plugin.entries.get(path)?.title ?? path}`);
         button.title = 'Disconnect'; setIcon(button, 'x');
-        foreign.appendChild(button); remove.appendChild(foreign);
+        remove.appendChild(foreign);
         const disconnect = (): void => { void this.plugin.perform(() => this.plugin.connect(entry.path, path, true)); };
         button.addEventListener('pointerdown', event => { if (event.button === 0) { event.preventDefault(); event.stopPropagation(); } });
         button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); disconnect(); });

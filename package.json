@@ -5,20 +5,33 @@
   "description": "A local, note-based visual planner for Obsidian.",
   "author": "David Hurtado",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/DavidHurtadoAI/just-simple-planner.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DavidHurtadoAI/just-simple-planner.git"
+  },
   "homepage": "https://github.com/DavidHurtadoAI/just-simple-planner#readme",
-  "bugs": { "url": "https://github.com/DavidHurtadoAI/just-simple-planner/issues" },
+  "bugs": {
+    "url": "https://github.com/DavidHurtadoAI/just-simple-planner/issues"
+  },
   "type": "module",
-  "engines": { "node": ">=22.13.0" },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "build": "esbuild main.ts --bundle --platform=browser --format=cjs --target=es2020 --external:obsidian --minify --outfile=main.js",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint main.ts model.ts modals.ts view.ts --max-warnings 0",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
-    "check": "npm run typecheck && npm test && npm run build && node scripts/check-package.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && node scripts/check-package.mjs",
     "demo": "node scripts/create-demo.mjs"
+  },
+  "overrides": {
+    "moment": "2.31.0"
   },
   "devDependencies": {
     "esbuild": "0.25.10",
+    "eslint": "10.11.0",
+    "eslint-plugin-obsidianmd": "0.4.2",
     "obsidian": "1.13.1",
     "typescript": "5.9.3"
   }

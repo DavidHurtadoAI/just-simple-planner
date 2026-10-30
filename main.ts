@@ -1,4 +1,4 @@
-import { Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath, getFrontMatterInfo, parseYaml, stringifyYaml, type App } from 'obsidian';
+import { Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath, getFrontMatterInfo, parseYaml, stringifyYaml, type App, type SettingDefinitionItem } from 'obsidian';
 import { History, today, validDay, wikiTarget, toggleTask, type Entry, type Thread, type Change } from './model';
 import { PlannerView, VIEW_TYPE } from './view';
 import { EntryModal, ThreadModal } from './modals';
@@ -204,11 +204,36 @@ export default class JustSimplePlanner extends Plugin {
 
 class PlannerSettingsTab extends PluginSettingTab {
   constructor(app: App, private readonly plugin: JustSimplePlanner) { super(app, plugin); }
+
+  getSettingDefinitions(): SettingDefinitionItem[] { return this.definitions(); }
+
+  private definitions(): ({ name: string; desc: string; render: (setting: Setting) => void } | { name: string; desc: string; render?: never })[] {
+    return [
+      {
+        name: 'New entries folder', desc: 'Storage only. Moving a note never changes its thread.',
+        render: setting => { setting.addText(text => text.setValue(this.plugin.settings.entryFolder).onChange(async value => { this.plugin.settings.entryFolder = value; await this.plugin.saveData(this.plugin.settings); })); },
+      },
+      {
+        name: 'New threads folder', desc: 'Thread notes hold status, color and order.',
+        render: setting => { setting.addText(text => text.setValue(this.plugin.settings.threadFolder).onChange(async value => { this.plugin.settings.threadFolder = value; await this.plugin.saveData(this.plugin.settings); })); },
+      },
+      {
+        name: 'Day width', desc: 'Default spacing between dates on the board.',
+        render: setting => { setting.addDropdown(dropdown => dropdown.addOptions({ '140': 'Compact', '190': 'Comfortable', '250': 'Wide' }).setValue(String(this.plugin.settings.dayWidth)).onChange(async value => { this.plugin.settings.dayWidth = Number(value); await this.plugin.saveData(this.plugin.settings); this.plugin.refresh(); })); },
+      },
+      {
+        name: 'Local Markdown notes',
+        desc: 'Notes are the source of truth. Properties: planner_type, title, date, thread, next; thread notes also use status, color and order. Pending tasks use their entry date. No background reminders or network requests.',
+      },
+    ];
+  }
+
+  // Obsidian before 1.13 renders settings through this fallback.
   display(): void {
     this.containerEl.empty();
-    new Setting(this.containerEl).setName('New entries folder').setDesc('Storage only. Moving a note never changes its thread.').addText(text => text.setValue(this.plugin.settings.entryFolder).onChange(async value => { this.plugin.settings.entryFolder = value; await this.plugin.saveData(this.plugin.settings); }));
-    new Setting(this.containerEl).setName('New threads folder').setDesc('Thread notes hold status, color and order.').addText(text => text.setValue(this.plugin.settings.threadFolder).onChange(async value => { this.plugin.settings.threadFolder = value; await this.plugin.saveData(this.plugin.settings); }));
-    new Setting(this.containerEl).setName('Day width').addDropdown(dropdown => dropdown.addOptions({ '140': 'Compact', '190': 'Comfortable', '250': 'Wide' }).setValue(String(this.plugin.settings.dayWidth)).onChange(async value => { this.plugin.settings.dayWidth = Number(value); await this.plugin.saveData(this.plugin.settings); this.plugin.refresh(); }));
-    this.containerEl.createEl('p', { text: 'Notes are the source of truth. Properties: planner_type, title, date, thread, next; thread notes also use status, color and order. Pending tasks use their entry date. No background reminders or network requests.' });
+    for (const definition of this.definitions()) {
+      const setting = new Setting(this.containerEl).setName(definition.name).setDesc(definition.desc);
+      definition.render?.(setting);
+    }
   }
 }

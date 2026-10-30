@@ -26,7 +26,7 @@ export function validDay(value: unknown): value is string {
 }
 
 export function dayNumber(day: string): number {
-  if (!validDay(day)) throw new Error(`Invalid date: ${day}`);
+  if (!validDay(day)) throw new Error(`Invalid date: ${String(day)}`);
   return Math.floor(Date.parse(`${day}T12:00:00Z`) / 86400000);
 }
 

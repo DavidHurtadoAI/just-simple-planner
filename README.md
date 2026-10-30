@@ -103,22 +103,15 @@ The board extends into the past and future as you scroll, rendering a bounded 91
 
 ## Install
 
-This is an initial **0.1.0 development version**. Build it from this repository:
+Download the installable files from the **[latest GitHub release](https://github.com/DavidHurtadoAI/just-simple-planner/releases/latest)**. The plugin requires **Obsidian 1.10.2 or later**.
 
-```sh
-git clone https://github.com/DavidHurtadoAI/just-simple-planner.git
-cd just-simple-planner
-npm ci
-npm run check
-```
-
-Use **Node.js 24** for the documented build. The plugin itself runs inside **Obsidian 1.10.2 or later**.
-
-1. Create a `just-simple-planner` folder under your vault's `.obsidian/plugins/` directory.
-2. Copy **`main.js`**, **`manifest.json`** and **`styles.css`** from the built repository into it.
-3. Reload Obsidian and enable **Just Simple Planner** in Community plugins.
+1. Download **`main.js`**, **`manifest.json`** and **`styles.css`** from the release's Assets section.
+2. Create a `just-simple-planner` folder under your vault's configuration directory, normally `.obsidian/plugins/`.
+3. Put the three files directly inside that folder, reload Obsidian and enable **Just Simple Planner** in Community plugins.
 4. Run **Just Simple Planner: Open planner** from the command palette, or click the fork icon in the ribbon.
 5. Create a **New thread**, then a **New entry**. Double-click an empty day cell to start an entry at that date and thread.
+
+The first public release is **0.1.0**. Community directory submission and review are pending; manual installation is available now.
 
 In Settings, **New entries folder** and **New threads folder** choose where new files are created. They do not reorganize existing files or decide which thread a card belongs to. **Day width** selects the default zoom.
 
@@ -192,11 +185,13 @@ I wrote about the excitement and the discomfort of this in **[He copiado una app
 ## Development and current scope
 
 ```sh
+git clone https://github.com/DavidHurtadoAI/just-simple-planner.git
+cd just-simple-planner
 npm ci
 npm run check
 ```
 
-The check runs strict TypeScript validation, unit tests, the production build and a package audit. GitHub Actions runs the same command. The documented in-app checks include connection dragging, hover controls, cancellation, undo, task completion and the independence of file location from thread membership. See [`TESTING.md`](TESTING.md) for the exact methods and limits.
+Use **Node.js 24** for the documented build. The check runs the official Obsidian ESLint rules with zero warnings, strict TypeScript validation, unit tests, the production build and a package audit. GitHub Actions runs the same command. The documented in-app checks include connection dragging, hover controls, cancellation, undo, task completion and the independence of file location from thread membership. See [`TESTING.md`](TESTING.md) for the exact methods and limits, and the [Obsidian review notes](docs/OBSIDIAN_REVIEW.md) for the release audit.
 
 The scripts that drive Obsidian's CLI are maintainer tools for the dedicated `@Nexus-dev` development vault. They guard its exact path. The public examples above can be used in your own vault without running those scripts.
 

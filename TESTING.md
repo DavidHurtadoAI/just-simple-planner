@@ -6,7 +6,7 @@ Result: **14 unit tests and 12 in-app integration checks passed**. The central i
 
 ## Automatic checks
 
-`npm run check` runs strict TypeScript checking, fourteen Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior.
+`npm run check` runs the official Obsidian ESLint rules with zero warnings, strict TypeScript checking, fourteen Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior.
 
 The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 45 KiB including the connection widgets, with Obsidian as its only external runtime module.
 
@@ -88,3 +88,11 @@ Collapsed threads were checked inside Obsidian: all five entries remain as compa
 ## Connector visibility
 
 Trusted Chromium mouse and keyboard events verified that hovering reveals the circular connector, and leaving hides it even while the card remains selected and mouse-focused. Repeated hover, keyboard focus, and visibility during a connection drag were also checked. Cancelling the drag hides the connector again; every entry's Markdown remained unchanged, and Obsidian reported no errors.
+
+## First public release audit — 2026-10-30
+
+The final 0.1.0 bundle passed `npm run check`, including the official Obsidian recommended lint rules with no suppressed rules and zero warnings. `npm audit` reported zero vulnerabilities across development dependencies as well; the development-only Moment dependency is pinned to its patched version through an override. The package audit checks manifest fields, synchronized versions, required files, absence of network/dynamic-code primitives, and that only `obsidian` remains external to the bundle.
+
+After central installation and verification, the release build passed all fifteen connection checks and seven pan checks in desktop Obsidian 1.15.0. An additional read-only in-app check verified the four searchable settings definitions, the two folder inputs and zoom dropdown, their stored values, and the pre-1.13 rendering fallback. Obsidian's hidden measuring dropdown was excluded when counting controls. Compact previews were checked again; the demo retains twenty entries, four threads, eighteen connections and no invalid notes. No Obsidian errors were captured.
+
+The current official community registry had no matching plugin ID or name. The review scope and minimum-version/mobile limitations are documented in [the Obsidian review notes](docs/OBSIDIAN_REVIEW.md). Community directory submission is performed separately by the maintainer.
