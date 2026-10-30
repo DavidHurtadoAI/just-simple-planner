@@ -1,7 +1,7 @@
 {
   "id": "just-simple-planner",
   "name": "Just Simple Planner",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "1.10.2",
   "description": "Plan and follow your notes on a continuous timeline, grouped into threads with connections, tasks and a notebook view. Fully local.",
   "author": "David Hurtado",

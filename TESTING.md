@@ -1,5 +1,11 @@
 # Validation — 0.1.0
 
+## Workflow icon update — 0.1.1
+
+On 2026-10-30, `npm run check` passed the official Obsidian lint rules, strict TypeScript, all fourteen model tests, the build and package audit. The central installer installed and verified 0.1.1 in `@Nexus-dev`. After reloading the plugin, an in-app check confirmed `lucide-workflow` in the ribbon, the view tab and the planner heading, with twenty entries, four threads and no captured Obsidian errors.
+
+## Initial release validation
+
 Recorded on 2026-10-30. The only integration test vault is the canonical `@Nexus-dev` inside the Obsidian-dev workspace. The maintainer scripts verify its resolved absolute path before testing.
 
 Result: **14 unit tests and 12 in-app integration checks passed**. The central installer verification reports `just-simple-planner 0.1.0: OK`. The final demo has 20 entries, 4 threads, 18 connections and 12 pending tasks.

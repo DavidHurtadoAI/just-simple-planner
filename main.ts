@@ -1,6 +1,6 @@
 import { Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath, getFrontMatterInfo, parseYaml, stringifyYaml, type App, type SettingDefinitionItem } from 'obsidian';
 import { History, today, validDay, wikiTarget, toggleTask, type Entry, type Thread, type Change } from './model';
-import { PlannerView, VIEW_TYPE } from './view';
+import { PlannerView, VIEW_TYPE, PLANNER_ICON } from './view';
 import { EntryModal, ThreadModal } from './modals';
 
 export interface PlannerSettings { entryFolder: string; threadFolder: string; dayWidth: number }
@@ -43,7 +43,7 @@ export default class JustSimplePlanner extends Plugin {
     } });
     this.registerView(VIEW_TYPE, leaf => new PlannerView(leaf, this));
     this.registerHoverLinkSource(VIEW_TYPE, { display: 'Just Simple Planner', defaultMod: false });
-    this.addRibbonIcon('git-fork', 'Open Just Simple Planner', () => { void this.perform(() => this.openPlanner()); });
+    this.addRibbonIcon(PLANNER_ICON, 'Open Just Simple Planner', () => { void this.perform(() => this.openPlanner()); });
     this.addCommand({ id: 'open-planner', name: 'Open planner', callback: () => { void this.perform(() => this.openPlanner()); } });
     this.addCommand({ id: 'new-entry', name: 'New entry', callback: () => this.newEntry(today()) });
     this.addCommand({ id: 'new-thread', name: 'New thread', callback: () => new ThreadModal(this.app, this).open() });

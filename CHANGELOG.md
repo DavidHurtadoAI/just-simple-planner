@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-10-30
+
+- Use the workflow icon (two connected squares) for the ribbon, view tab and planner heading.
+- Name Máquina in the README's account of the experiment.
+
 ## 0.1.0 — 2026-10-30
 
 - Initial independent, fully local plugin.

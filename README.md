@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.1.0-4c819a)
+![Version](https://img.shields.io/badge/version-0.1.1-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -108,7 +108,7 @@ Download the installable files from the **[latest GitHub release](https://github
 1. Download **`main.js`**, **`manifest.json`** and **`styles.css`** from the release's Assets section.
 2. Create a `just-simple-planner` folder under your vault's configuration directory, normally `.obsidian/plugins/`.
 3. Put the three files directly inside that folder, reload Obsidian and enable **Just Simple Planner** in Community plugins.
-4. Run **Just Simple Planner: Open planner** from the command palette, or click the fork icon in the ribbon.
+4. Run **Just Simple Planner: Open planner** from the command palette, or click the workflow icon (two connected squares) in the ribbon.
 5. Create a **New thread**, then a **New entry**. Double-click an empty day cell to start an entry at that date and thread.
 
 The first public release is **0.1.0**. Community directory submission and review are pending; manual installation is available now.

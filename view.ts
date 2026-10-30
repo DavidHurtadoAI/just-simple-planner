@@ -4,6 +4,7 @@ import { connected, spotlight, stackEntries, tasks, today, shiftDay, dayNumber, 
 import { ConnectModal, ThreadModal } from './modals';
 
 export const VIEW_TYPE = 'just-simple-planner';
+export const PLANNER_ICON = 'workflow';
 const DAYS = 91;
 const LABEL = 220;
 const CARD = 154;
@@ -52,7 +53,7 @@ export class PlannerView extends ItemView implements HoverParent {
   constructor(leaf: WorkspaceLeaf, private readonly plugin: JustSimplePlanner) { super(leaf); }
   getViewType(): string { return VIEW_TYPE; }
   getDisplayText(): string { return 'Just Simple Planner'; }
-  getIcon(): string { return 'git-fork'; }
+  getIcon(): string { return PLANNER_ICON; }
 
   getState(): Record<string, unknown> { return { mode: this.mode, firstDay: this.firstDay, collapsed: [...this.collapsed], activeThread: this.activeThread }; }
   async setState(state: Record<string, unknown>): Promise<void> {
@@ -69,7 +70,7 @@ export class PlannerView extends ItemView implements HoverParent {
     this.root = this.contentEl.createDiv({ cls: 'jsp-view', attr: { tabindex: '0', 'aria-label': 'Just Simple Planner' } });
     const toolbar = this.root.createDiv({ cls: 'jsp-toolbar' });
     const brand = toolbar.createDiv({ cls: 'jsp-brand' });
-    setIcon(brand.createSpan(), 'git-fork'); brand.createSpan({ text: 'Just Simple Planner' });
+    setIcon(brand.createSpan(), PLANNER_ICON); brand.createSpan({ text: 'Just Simple Planner' });
     const search = toolbar.createEl('input', { cls: 'jsp-search', attr: { type: 'search', placeholder: 'Filter entries…', 'aria-label': 'Filter entries' } });
     this.registerDomEvent(search, 'input', () => { this.search = search.value; this.render(); });
     const status = toolbar.createEl('select', { attr: { 'aria-label': 'Thread status' } });
