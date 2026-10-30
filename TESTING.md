@@ -84,3 +84,7 @@ DOM drag events are automated integration checks. A human mouse-drag session, ph
 ## Folded previews and README screenshots
 
 Collapsed threads were checked inside Obsidian: all five entries remain as compact, single-line cards; the row is 54 pixels high for one entry per day; body previews are omitted while note menus and connection handles remain. Expanding restores full cards. The README's native viewport captures use only fictional planner notes. The entry-menu close-up is the original user-provided screenshot. No note contents were changed during capture.
+
+## Connector visibility
+
+Trusted Chromium mouse and keyboard events verified that hovering reveals the circular connector, and leaving hides it even while the card remains selected and mouse-focused. Repeated hover, keyboard focus, and visibility during a connection drag were also checked. Cancelling the drag hides the connector again; every entry's Markdown remained unchanged, and Obsidian reported no errors.

@@ -64,7 +64,10 @@
 .jsp-edge.is-dimmed { opacity: .08; }
 .jsp-view .jsp-connection-handle { position: absolute; z-index: 3; right: -11px; top: calc(50% - 11px); width: 22px; height: 22px; min-width: 0; padding: 4px; border-radius: 50%; border: 2px solid var(--jsp-thread-color); background: var(--background-primary); box-shadow: 0 0 0 3px var(--background-primary); color: var(--jsp-thread-color); cursor: crosshair; opacity: 0; pointer-events: none; touch-action: none; transition: opacity .12s, transform .12s; }
 .jsp-connection-handle svg { width: 10px; height: 10px; }
-.jsp-card:hover > .jsp-connection-handle, .jsp-card:focus-within > .jsp-connection-handle, .jsp-card.is-selected > .jsp-connection-handle, .jsp-connecting .jsp-connection-handle { opacity: 1; pointer-events: auto; }
+.jsp-card:hover > .jsp-connection-handle,
+.jsp-card:focus-visible > .jsp-connection-handle,
+.jsp-view .jsp-connection-handle:focus-visible,
+.jsp-connecting .jsp-connection-handle { opacity: 1; pointer-events: auto; }
 .jsp-view .jsp-connection-handle:hover { transform: scale(1.12); background: var(--jsp-thread-color); color: var(--background-primary); }
 .jsp-card.is-connection-source, .jsp-card.is-connection-target { box-shadow: 0 0 0 2px var(--interactive-accent); opacity: 1; }
 .jsp-card.is-connection-target { background: color-mix(in srgb, var(--interactive-accent) 15%, var(--background-primary)); }
