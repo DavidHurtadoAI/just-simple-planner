@@ -1,0 +1,13 @@
+import { readFile, stat } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const manifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url)));
+const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
+const versions = JSON.parse(await readFile(new URL('../versions.json', import.meta.url)));
+assert.equal(manifest.id, pkg.name);
+assert.equal(manifest.version, pkg.version);
+assert.equal(versions[pkg.version], manifest.minAppVersion);
+assert.equal(Object.keys(pkg.dependencies ?? {}).length, 0);
+for (const name of ['main.js', 'styles.css', 'LICENSE']) assert.ok((await stat(new URL(`../${name}`, import.meta.url))).size > 0);
+const code = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(code), 'Unexpected network primitive');
+console.log(`Package OK: ${manifest.name} ${manifest.version}; no runtime dependencies; ${(Buffer.byteLength(code) / 1024).toFixed(1)} KiB JS.`);
