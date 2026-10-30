@@ -1,6 +1,6 @@
 {
   "name": "just-simple-planner",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "A local, note-based visual planner for Obsidian.",
   "author": "David Hurtado",

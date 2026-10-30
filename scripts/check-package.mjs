@@ -22,4 +22,6 @@ assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(code), 'Unexpected n
 const imports = [...code.matchAll(/\brequire\(["']([^"']+)["']\)/g)].map(match => match[1]);
 assert.deepEqual([...new Set(imports)], ['obsidian'], 'Only Obsidian may remain external to the bundle');
 assert.ok(!/\b(?:eval|Function)\s*\(/.test(code), 'Unexpected dynamic code execution');
+const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+assert.ok(!/!important\b/i.test(css), 'Use scoped selector specificity instead of !important');
 console.log(`Package OK: ${manifest.name} ${manifest.version}; no runtime dependencies; ${(Buffer.byteLength(code) / 1024).toFixed(1)} KiB JS.`);

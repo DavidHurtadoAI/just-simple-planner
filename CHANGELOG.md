@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 — 2026-10-30
+
+- Build and publish releases in GitHub Actions with verified provenance attestations for all three installable files.
+- Discover planner notes from vault-wide cached metadata once per load; refresh known planner paths thereafter.
+- Ignore edits and renames of unrelated notes, retain dynamic opt-in/opt-out and folder moves, and reject stale indexing reads.
+- Document the necessary initial Vault Enumeration capability and note-reading scope.
+- Replace the container's `!important` with a scoped, more specific selector and check its absence in the package audit.
+
 ## 0.1.1 — 2026-10-30
 
 - Use the workflow icon (two connected squares) for the ribbon, view tab and planner heading.

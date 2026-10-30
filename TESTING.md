@@ -1,5 +1,13 @@
 # Validation
 
+## Community review update — 0.1.2
+
+On 2026-10-30, `npm run check` passed all fourteen model tests, the official lint rules, strict TypeScript, the build and package audit. The package audit now rejects `!important` in the stylesheet.
+
+The canonical-vault `scripts/qa-index.mjs` run passed eleven checks: one-time discovery reads only marked notes; later and overlapping refreshes do not enumerate files; unrelated edits and renames are ignored; newly marked notes are discovered and updated; folder moves preserve membership while ignoring unrelated children; opt-out removes a card without deleting its file; an in-flight cached read cannot overwrite a newer snapshot; the scoped container still has zero padding and hidden overflow; all original Markdown and demo counts are retained; and Obsidian captures no errors. Two additive QA notes remain archived in `Ensayos QA/Privacidad del índice QA`; the test restores their content and never deletes them.
+
+Release 0.1.2 uses `.github/workflows/release.yml` to build, check, attest and publish all three installable files. The workflow verifies provenance before publishing. SHA-pinned actions and job-scoped signing permissions are used. The README documents independent verification with `gh attestation verify` and discloses the intentional initial Vault Enumeration capability.
+
 ## Workflow icon update — 0.1.1
 
 On 2026-10-30, `npm run check` passed the official Obsidian lint rules, strict TypeScript, all fourteen model tests, the build and package audit. The central installer installed and verified 0.1.1 in `@Nexus-dev`. After reloading the plugin, an in-app check confirmed `lucide-workflow` in the ribbon, the view tab and the planner heading, with twenty entries, four threads and no captured Obsidian errors.

@@ -1,6 +1,12 @@
-# Obsidian release review — 0.1.0
+# Obsidian release review
 
 Reviewed on 2026-10-30 against the official [developer policies](https://docs.obsidian.md/community-directory/developer-policies), [submission requirements](https://docs.obsidian.md/community-directory/submission-requirements-for-plugins), [plugin guidelines](https://github.com/obsidianmd/obsidian-developer-docs/blob/main/en/Plugins/Releasing/Plugin%20guidelines.md) and [release instructions](https://docs.obsidian.md/Plugins/Releasing/Submit%20your%20plugin).
+
+## Community recommendations — 0.1.2
+
+- Release files are built and attested by [a GitHub-hosted release workflow](../.github/workflows/release.yml), then verified before those same files are published. Actions are pinned by SHA and signing/publishing permissions are job-scoped. See GitHub's [provenance documentation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
+- Initial **Vault Enumeration** is intentional: discovering opted-in notes anywhere requires checking Markdown paths and cached frontmatter across the vault. It happens once per load. Body reads and later refreshes are limited to planner notes; unrelated edit/rename events are ignored. The README discloses this capability. Replacing the API name would hide the scanner finding without removing the underlying capability, so the initial enumeration remains explicit.
+- The container uses a scoped selector instead of `!important`; the package audit rejects that CSS override.
 
 ## Code and lifecycle
 
@@ -16,7 +22,7 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 - No account, payment, ads, telemetry, self-updater or network requests of its own. No access to files outside the vault. Embedded resources in user-authored Markdown follow Obsidian's normal renderer behavior.
 - MIT license is included. The README prominently credits Haftio as inspiration for this independent implementation.
 - Manifest and package versions match `versions.json`. The ID is `just-simple-planner`; the manifest description is within 250 characters and ends with a period.
-- The GitHub release tag is exactly `0.1.0`, with `main.js`, `manifest.json` and `styles.css` attached individually. Generated JavaScript and development caches stay out of source control.
+- GitHub release tags exactly match the manifest version, with `main.js`, `manifest.json` and `styles.css` attached individually. From 0.1.2, these files have GitHub build-provenance attestations. Generated JavaScript and development caches stay out of source control.
 - The README includes installation, gestures, property definitions, privacy, screenshots and portable fictional examples.
 
 ## Validation limits

@@ -1,4 +1,4 @@
-import { Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath, getFrontMatterInfo, parseYaml, stringifyYaml, type App, type SettingDefinitionItem } from 'obsidian';
+import { Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath, getFrontMatterInfo, parseYaml, stringifyYaml, type App, type SettingDefinitionItem, type TAbstractFile } from 'obsidian';
 import { History, today, validDay, wikiTarget, toggleTask, type Entry, type Thread, type Change } from './model';
 import { PlannerView, VIEW_TYPE, PLANNER_ICON } from './view';
 import { EntryModal, ThreadModal } from './modals';
@@ -24,6 +24,11 @@ export default class JustSimplePlanner extends Plugin {
   invalid = new Set<string>();
   history!: History;
   private refreshTimer: number | null = null;
+  private indexDiscovered = false;
+  private indexRevisions = new Map<string, number>();
+  private indexRefresh: Promise<void> | null = null;
+  private indexPending = false;
+  private stopping = false;
 
   async onload(): Promise<void> {
     const saved: unknown = await this.loadData();
@@ -48,14 +53,19 @@ export default class JustSimplePlanner extends Plugin {
     this.addCommand({ id: 'new-entry', name: 'New entry', callback: () => this.newEntry(today()) });
     this.addCommand({ id: 'new-thread', name: 'New thread', callback: () => new ThreadModal(this.app, this).open() });
     this.addSettingTab(new PlannerSettingsTab(this.app, this));
-    this.registerEvent(this.app.metadataCache.on('changed', (file, text) => { this.indexText(file, text); this.scheduleRefresh(); }));
-    this.registerEvent(this.app.metadataCache.on('resolved', () => { void this.perform(() => this.reloadIndex()); }));
-    this.registerEvent(this.app.vault.on('delete', file => { this.entries.delete(file.path); this.threads.delete(file.path); this.invalid.delete(file.path); this.scheduleRefresh(); }));
-    this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
-      this.entries.delete(oldPath); this.threads.delete(oldPath); this.invalid.delete(oldPath);
-      if (file instanceof TFile) void this.perform(async () => { this.indexText(file, await this.app.vault.read(file)); await this.reloadIndex(); });
+    this.registerEvent(this.app.metadataCache.on('changed', (file, text) => {
+      if (!this.isKnown(file.path) && !this.hasPlannerMetadata(file)) return;
+      this.indexText(file, text); this.scheduleRefresh();
     }));
-    this.register(() => { if (this.refreshTimer !== null) window.clearTimeout(this.refreshTimer); });
+    this.registerEvent(this.app.metadataCache.on('resolved', () => { void this.perform(() => this.reloadIndex()); }));
+    this.registerEvent(this.app.vault.on('delete', file => {
+      for (const path of this.knownPaths()) if (path === file.path || path.startsWith(`${file.path}/`)) this.forget(path);
+      this.scheduleRefresh();
+    }));
+    this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+      void this.perform(() => this.reindexRenamed(file, oldPath));
+    }));
+    this.register(() => { this.stopping = true; if (this.refreshTimer !== null) window.clearTimeout(this.refreshTimer); });
     this.app.workspace.onLayoutReady(() => { void this.perform(() => this.reloadIndex()); });
   }
 
@@ -73,8 +83,34 @@ export default class JustSimplePlanner extends Plugin {
 
   link(path: string): string { return `[[${path.replace(/\.md$/i, '')}]]`; }
 
+  private knownPaths(): Set<string> { return new Set([...this.entries.keys(), ...this.threads.keys(), ...this.invalid]); }
+
+  private isKnown(path: string): boolean { return this.entries.has(path) || this.threads.has(path) || this.invalid.has(path); }
+
+  private hasPlannerMetadata(file: TFile): boolean {
+    const type: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter?.planner_type;
+    return file.extension === 'md' && (type === 'entry' || type === 'thread');
+  }
+
+  private forget(path: string): void {
+    this.indexRevisions.set(path, (this.indexRevisions.get(path) ?? 0) + 1);
+    this.entries.delete(path); this.threads.delete(path); this.invalid.delete(path);
+  }
+
+  private async reindexRenamed(file: TAbstractFile, oldPath: string): Promise<void> {
+    const moved = file instanceof TFile
+      ? this.isKnown(oldPath) || this.hasPlannerMetadata(file) ? [oldPath] : []
+      : [...this.knownPaths()].filter(path => path.startsWith(`${oldPath}/`));
+    for (const path of moved) {
+      this.forget(path);
+      const destination = this.app.vault.getAbstractFileByPath(normalizePath(`${file.path}${path.slice(oldPath.length)}`));
+      if (destination instanceof TFile && !this.stopping) this.indexText(destination, await this.app.vault.read(destination));
+    }
+    if (moved.length) await this.reloadIndex();
+  }
+
   indexText(file: TFile, text: string): void {
-    this.entries.delete(file.path); this.threads.delete(file.path); this.invalid.delete(file.path);
+    this.forget(file.path);
     if (file.extension !== 'md') return;
     try {
       const { frontmatter: fm, body } = unpack(text);
@@ -93,9 +129,30 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   async reloadIndex(): Promise<void> {
-    const candidates = this.app.vault.getMarkdownFiles().filter(file => this.entries.has(file.path) || this.threads.has(file.path) || this.invalid.has(file.path) || this.app.metadataCache.getFileCache(file)?.frontmatter?.planner_type);
-    for (const file of candidates) this.indexText(file, await this.app.vault.cachedRead(file));
-    this.refresh();
+    if (this.stopping) return;
+    this.indexPending = true;
+    if (!this.indexRefresh) this.indexRefresh = this.refreshIndex().finally(() => { this.indexRefresh = null; });
+    await this.indexRefresh;
+  }
+
+  private async refreshIndex(): Promise<void> {
+    do {
+      this.indexPending = false;
+      // Discovery needs Markdown paths across the vault because folders do not define membership.
+      // Only explicitly marked notes are read; later passes revisit known planner paths only.
+      const paths = this.indexDiscovered ? this.knownPaths() : new Set(this.app.vault.getMarkdownFiles().filter(file => this.isKnown(file.path) || this.hasPlannerMetadata(file)).map(file => file.path));
+      this.indexDiscovered = true;
+      for (const path of paths) {
+        if (this.stopping) return;
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (!(file instanceof TFile)) { this.forget(path); continue; }
+        const revision = this.indexRevisions.get(path);
+        const text = await this.app.vault.cachedRead(file);
+        // A metadata event or rename may have supplied a newer snapshot while reading.
+        if (!this.stopping && file.path === path && this.indexRevisions.get(path) === revision) this.indexText(file, text);
+      }
+    } while (this.indexPending && !this.stopping);
+    if (!this.stopping) this.refresh();
   }
 
   rows(): Thread[] {

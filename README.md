@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.1.1-4c819a)
+![Version](https://img.shields.io/badge/version-0.1.2-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -113,6 +113,14 @@ Download the installable files from the **[latest GitHub release](https://github
 
 The first public release is **0.1.0**. Community directory submission and review are pending; manual installation is available now.
 
+From **0.1.2**, release files are built, checked and published by GitHub Actions with cryptographic build-provenance attestations. After downloading the three files, verify each with GitHub CLI:
+
+```sh
+gh attestation verify main.js --repo DavidHurtadoAI/just-simple-planner
+gh attestation verify manifest.json --repo DavidHurtadoAI/just-simple-planner
+gh attestation verify styles.css --repo DavidHurtadoAI/just-simple-planner
+```
+
 In Settings, **New entries folder** and **New threads folder** choose where new files are created. They do not reorganize existing files or decide which thread a card belongs to. **Day width** selects the default zoom.
 
 ## Try the examples
@@ -166,6 +174,8 @@ Moving an entry to another folder does not change its thread. Use Obsidian's nor
 
 The plugin has **zero runtime package dependencies** and makes no network requests of its own. It has no account, telemetry, analytics or remote database. Bodies, dates, thread membership and connections live in Markdown. Settings hold creation folders and zoom; Obsidian's workspace holds view layout.
 
+**Vault discovery:** once per plugin load, the planner lists Markdown file paths and checks Obsidian's cached frontmatter across the vault to discover notes with `planner_type: entry` or `planner_type: thread`. This keeps folder location independent of the board. It reads note bodies only for those planner notes. Later refreshes revisit known planner paths; metadata events discover newly marked notes and remove notes that opt out. Unrelated notes are not parsed or opened by the planner when edited or renamed. The community scanner can therefore report **Vault Enumeration**: initial path enumeration remains necessary for automatic discovery across folders. Nothing is uploaded or shared.
+
 Writes compare the note with its snapshot before saving. A concurrent edit causes a conflict instead of being silently overwritten. Multi-note operations try to roll back earlier writes if a later write fails; a rollback conflict is reported for review. This is optimistic conflict protection, not a filesystem-wide transaction.
 
 Undo history is in memory, capped at 40 operations and cleared on plugin reload. It covers edits, moves, connections and task completion. **Creating a note is not undone by deleting it**; the plugin never deletes your notes. YAML values and Markdown content are retained, although YAML formatting and comments may be normalized when properties are edited.
@@ -192,6 +202,8 @@ npm run check
 ```
 
 Use **Node.js 24** for the documented build. The check runs the official Obsidian ESLint rules with zero warnings, strict TypeScript validation, unit tests, the production build and a package audit. GitHub Actions runs the same command. The documented in-app checks include connection dragging, hover controls, cancellation, undo, task completion and the independence of file location from thread membership. See [`TESTING.md`](TESTING.md) for the exact methods and limits, and the [Obsidian review notes](docs/OBSIDIAN_REVIEW.md) for the release audit.
+
+Publishing a version tag triggers [the release workflow](.github/workflows/release.yml). It builds and checks the source, attests all three installable files, verifies their attestations, and uploads those exact bytes to GitHub Releases. Release tags must exactly match `manifest.json` and have a matching notes file in `.github/release-notes/`. The workflow's actions are pinned by commit SHA; permissions for publishing and signing are limited to the release job.
 
 The scripts that drive Obsidian's CLI are maintainer tools for the dedicated `@Nexus-dev` development vault. They guard its exact path. The public examples above can be used in your own vault without running those scripts.
 
