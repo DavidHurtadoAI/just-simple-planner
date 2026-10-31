@@ -1,5 +1,9 @@
 # Validation
 
+## Dated-note performance warning — 0.3.1
+
+On 2026-10-31, `npm run check` passed all twenty-eight tests, official lint, strict TypeScript, build and package checks. Central installation/verification passed. The warning was checked in the installed settings panel and its native screenshot inspected: it explains that many files can significantly slow the interface and that unchecking the option restores normal performance. The demo retains twenty entries and four threads with no captured errors; screenshot capture preserves the saved settings bytes.
+
 ## Common base and ordinary dated notes — 0.3.0
 
 On 2026-10-31, `npm run check` passed official Obsidian lint, strict TypeScript, all twenty-eight unit tests, the build and package audit. The installed development build passed thirty in-app cases in `scripts/qa-settings.mjs`. Coverage includes a named base without whole-vault enumeration, optional relative subfolders, empty child paths, creation of a previously absent base on first note creation, empty-thread recovery, folder boundary events, autosave validation/concurrency/failure recovery, legacy scope/path adaptation and all prior mapped-note editing checks.
@@ -74,7 +78,7 @@ Result: **14 unit tests and 12 in-app integration checks passed**. The central i
 
 `npm run check` runs the official Obsidian ESLint rules with zero warnings, strict TypeScript checking, twenty-eight Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior. Settings tests cover isolated English defaults, legacy loading, folder validation and scope boundaries, independent creation folders, reserved and duplicate keys, exact mapped reads, simultaneous mapped writes, index-reset conditions and history clearing.
 
-The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 60.5 KiB, with Obsidian as its only external runtime module.
+The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 60.7 KiB, with Obsidian as its only external runtime module.
 
 ## Direct connection widgets — 2026-10-30
 

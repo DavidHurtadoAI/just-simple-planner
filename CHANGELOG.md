@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 — 2026-10-31
+
+- Add a performance warning beside Show all dated notes, explaining that large vaults may slow down the interface and that unchecking the option restores normal performance.
+
 ## 0.3.0 — 2026-10-31
 
 - Replace Search folder and Search entire vault with a common Planner folder. Empty searches the entire vault; optional entry/thread subfolders are relative to this base and empty saves directly in it.

@@ -138,7 +138,11 @@ export class PlannerSettingsTab extends PluginSettingTab {
         heading: 'Note inclusion', rows: [
           {
             name: 'Show all dated notes', desc: 'On: show every note with a valid date in the configured Date property, even without planner_type: entry. Off: include only marked entries. Default: off. Thread notes remain rows, even if they have dates. The Planner folder scope applies in both modes.',
-            render: setting => { setting.addToggle(toggle => {
+            render: setting => {
+              const warning = setting.descEl.createEl('p');
+              warning.createEl('strong', { text: 'Performance warning: ' });
+              warning.createSpan({ text: 'In vaults with many files, enabling this option can significantly slow down the interface. Uncheck it to restore normal performance.' });
+              setting.addToggle(toggle => {
               const field = this.track('showAllDatedNotes', setting, toggle.toggleEl.querySelector('input') ?? toggle.toggleEl, () => toggle.getValue(), value => {
                 toggle.setValue(Boolean(value));
                 const checkbox = toggle.toggleEl.querySelector<HTMLInputElement>('input');

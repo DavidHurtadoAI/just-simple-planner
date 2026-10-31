@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.3.0-4c819a)
+![Version](https://img.shields.io/badge/version-0.3.1-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -143,6 +143,8 @@ Missing folders are created when you save the first new note. Absolute paths, pa
 **Show all dated notes** is off by default. With it off, cards require `planner_type: entry` and a valid mapped date. Turn it on to include **any note with a valid calendar date in the configured Date property**, even if it has no planner type or a different type. The Planner folder scope applies in both modes.
 
 Thread notes marked `planner_type: thread` remain rows, even when they have dates. Missing thread values appear under **Unassigned**, and missing titles fall back to the filename. Ordinary notes with invalid dates or a different date key are excluded.
+
+**Performance warning:** in vaults with many files, enabling this option can significantly slow down the interface. Uncheck **Show all dated notes** to restore normal performance.
 
 **Displaying a note does not modify it or add planner_type.** Editing, completing tasks, connecting or dragging a card writes to that original Markdown note using the mapped property names. A date can represent creation or publication rather than a plan; choose the property you want to visualize.
 
