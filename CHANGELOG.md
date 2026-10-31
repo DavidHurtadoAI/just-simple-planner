@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 — 2026-10-31
+
+- Default new installations to `Planner/Entries` and `Planner/Threads`, so initial folder settings are in English for every app language.
+- Keep all existing saved folder settings and notes unchanged on update.
+
 ## 0.1.2 — 2026-10-30
 
 - Build and publish releases in GitHub Actions with verified provenance attestations for all three installable files.

@@ -4,7 +4,7 @@ import { PlannerView, VIEW_TYPE, PLANNER_ICON } from './view';
 import { EntryModal, ThreadModal } from './modals';
 
 export interface PlannerSettings { entryFolder: string; threadFolder: string; dayWidth: number }
-const DEFAULTS: PlannerSettings = { entryFolder: 'Planificador/Entradas', threadFolder: 'Planificador/Hilos', dayWidth: 190 };
+const DEFAULTS: PlannerSettings = { entryFolder: 'Planner/Entries', threadFolder: 'Planner/Threads', dayWidth: 190 };
 
 export function unpack(text: string): { frontmatter: Record<string, unknown>; body: string } {
   const info = getFrontMatterInfo(text);

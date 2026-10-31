@@ -1,5 +1,11 @@
 # Validation
 
+## English initial folder settings — 0.1.3
+
+On 2026-10-31, `npm run check` passed the official Obsidian lint rules, strict TypeScript, all fourteen model tests, the build and package audit. The central installer installed and verified 0.1.3 in `@Nexus-dev`.
+
+A new plugin instance's constructor defaults were checked as `Planner/Entries` and `Planner/Threads`. Those defaults were temporarily supplied in memory to the installed settings tab, where both English paths rendered correctly. The original settings object was restored without saving. The existing `data.json` remained byte-for-byte unchanged through installation, plugin reload and the in-app check; its two configured creation folders and zoom were retained. The demo still had twenty entries and four threads, and Obsidian captured no errors.
+
 ## Community review update — 0.1.2
 
 On 2026-10-30, `npm run check` passed all fourteen model tests, the official lint rules, strict TypeScript, the build and package audit. The package audit now rejects `!important` in the stylesheet.

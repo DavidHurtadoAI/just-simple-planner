@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.1.2-4c819a)
+![Version](https://img.shields.io/badge/version-0.1.3-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -121,7 +121,7 @@ gh attestation verify manifest.json --repo DavidHurtadoAI/just-simple-planner
 gh attestation verify styles.css --repo DavidHurtadoAI/just-simple-planner
 ```
 
-In Settings, **New entries folder** and **New threads folder** choose where new files are created. They do not reorganize existing files or decide which thread a card belongs to. **Day width** selects the default zoom.
+In Settings, **New entries folder** and **New threads folder** choose where new files are created. New installations default to **`Planner/Entries`** and **`Planner/Threads`**; updates preserve your saved folder settings. They do not reorganize existing files or decide which thread a card belongs to. **Day width** selects the default zoom.
 
 ## Try the examples
 
