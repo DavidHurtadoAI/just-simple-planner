@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2 — 2026-10-31
+
+- Remove Show all dated notes and its performance warning. Cards again require planner_type: entry and a valid configured date; thread notes remain rows.
+- Ignore the removed setting in older configurations without rewriting or moving notes. Notes included only by their date no longer appear.
+- Keep the common Planner folder, relative creation subfolders, configurable property names and autosave behavior.
+- Update settings help, the README and native settings screenshots. Existing-note picker and external drag and drop remain deferred.
+
 ## 0.3.1 — 2026-10-31
 
 - Add a performance warning beside Show all dated notes, explaining that large vaults may slow down the interface and that unchecking the option restores normal performance.

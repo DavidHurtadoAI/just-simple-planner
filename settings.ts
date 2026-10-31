@@ -5,7 +5,6 @@ export interface PlannerSettings {
   threadFolder: string;
   dayWidth: number;
   plannerFolder: string;
-  showAllDatedNotes: boolean;
   propertyNames: PropertyNames;
 }
 
@@ -13,7 +12,7 @@ export const DEFAULT_PROPERTIES: Readonly<PropertyNames> = { date: 'date', title
 export const ENTRY_PROPERTIES: EntryProperty[] = ['date', 'title', 'thread', 'next'];
 
 export function defaultSettings(): PlannerSettings {
-  return { plannerFolder: 'Planner', entryFolder: 'Entries', threadFolder: 'Threads', dayWidth: 190, showAllDatedNotes: false, propertyNames: { ...DEFAULT_PROPERTIES } };
+  return { plannerFolder: 'Planner', entryFolder: 'Entries', threadFolder: 'Threads', dayWidth: 190, propertyNames: { ...DEFAULT_PROPERTIES } };
 }
 
 export function cloneSettings(settings: PlannerSettings): PlannerSettings { return { ...settings, propertyNames: { ...settings.propertyNames } }; }
@@ -35,7 +34,6 @@ export function loadSettings(saved: unknown): PlannerSettings {
       result[key] = !base ? path : path === base ? '' : path.startsWith(`${base}/`) ? path.slice(base.length + 1) : path.split('/').pop() ?? '';
     }
   }
-  if (typeof data.showAllDatedNotes === 'boolean') result.showAllDatedNotes = data.showAllDatedNotes;
   if (typeof data.dayWidth === 'number' && [140, 190, 250].includes(data.dayWidth)) result.dayWidth = data.dayWidth;
   if (data.propertyNames && typeof data.propertyNames === 'object' && !Array.isArray(data.propertyNames)) {
     const names = data.propertyNames as Record<string, unknown>;
@@ -112,5 +110,5 @@ export function mapEntryFields(fields: Record<string, unknown>, names: PropertyN
 }
 
 export function changesIndex(before: PlannerSettings, after: PlannerSettings): boolean {
-  return before.plannerFolder !== after.plannerFolder || before.showAllDatedNotes !== after.showAllDatedNotes || ENTRY_PROPERTIES.some(key => before.propertyNames[key] !== after.propertyNames[key]);
+  return before.plannerFolder !== after.plannerFolder || ENTRY_PROPERTIES.some(key => before.propertyNames[key] !== after.propertyNames[key]);
 }

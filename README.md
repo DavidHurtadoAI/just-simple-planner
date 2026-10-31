@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.3.1-4c819a)
+![Version](https://img.shields.io/badge/version-0.3.2-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -124,7 +124,7 @@ gh attestation verify styles.css --repo DavidHurtadoAI/just-simple-planner
 
 ## Settings
 
-Settings use English labels and defaults and save automatically. **Switches and dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings.** Each field shows save feedback or a validation error. Invalid changes leave the last valid configuration active; a switch or dropdown that cannot be saved returns to its active value. Folder settings from older versions are adapted as described below; zoom and property mapping are retained.
+Settings use English labels and defaults and save automatically. **Dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings.** Each field shows save feedback or a validation error. Invalid changes leave the last valid configuration active; a dropdown that cannot be saved returns to its active value. Folder settings from older versions are adapted as described below; zoom and property mapping are retained.
 
 ### Planner folders: one common base
 
@@ -138,17 +138,15 @@ For example, with Planner folder `Cursos/IA`, entries go to `Cursos/IA/Entries` 
 
 Missing folders are created when you save the first new note. Absolute paths, parent traversal and paths through an existing file are rejected. Changing settings never moves existing files. Thread membership still comes from a property; folders determine scope and storage.
 
-### Show all dated notes
+### Only marked planner notes appear
 
-**Show all dated notes** is off by default. With it off, cards require `planner_type: entry` and a valid mapped date. Turn it on to include **any note with a valid calendar date in the configured Date property**, even if it has no planner type or a different type. The Planner folder scope applies in both modes.
+Within **Planner folder** and its subfolders, cards require **`planner_type: entry`** and a valid calendar date in the configured **Date property**. Rows use **`planner_type: thread`**, including threads without entries. An empty Planner folder searches for these marked notes across the vault.
 
-Thread notes marked `planner_type: thread` remain rows, even when they have dates. Missing thread values appear under **Unassigned**, and missing titles fall back to the filename. Ordinary notes with invalid dates or a different date key are excluded.
+A date alone never adds a note to the planner. The `thread` property determines the row, independently of the entry's subfolder. Missing thread values appear under **Unassigned**; missing titles fall back to the filename.
 
-**Performance warning:** in vaults with many files, enabling this option can significantly slow down the interface. Uncheck **Show all dated notes** to restore normal performance.
+**Updating from 0.3.0 or 0.3.1:** Show all dated notes has been removed. Its saved value is ignored. Notes that appeared only because of that option are no longer shown; their files, dates and other properties are unchanged. Adding existing notes through a picker or external drag and drop is deferred.
 
-**Displaying a note does not modify it or add planner_type.** Editing, completing tasks, connecting or dragging a card writes to that original Markdown note using the mapped property names. A date can represent creation or publication rather than a plan; choose the property you want to visualize.
-
-![The common Planner folder, optional relative subfolders and Show all dated notes](docs/images/settings-scope.png)
+![The common Planner folder, optional relative subfolders and explicit planner-note inclusion](docs/images/settings-scope.png)
 
 ### Property mapping: use your existing frontmatter names
 
@@ -161,7 +159,7 @@ Thread notes marked `planner_type: thread` remain rows, even when they have date
 
 For example, select `scheduled`, `headline`, `project` and `following` if those are the keys you already use. The mapping applies to reading, creating, editing, moving and connecting entries, including task edits. Keys must be non-empty and different; `planner_type` stays fixed and is reserved. Thread notes keep `status`, `color` and `order`.
 
-**Changing the mapping does not migrate notes.** Existing properties are not renamed or rewritten. Marked entries without a valid mapped date are counted as invalid and excluded. Ordinary notes qualify only while their mapped date is valid and dated-note mode is enabled. Missing title values use the filename; missing thread values are unassigned; missing connections produce no arrows. Restore the previous mapping to read the previous schema again, or deliberately update your notes yourself. Changes to Planner folder, dated-note inclusion or property mapping clear session undo/redo so old actions cannot modify notes under a different configuration.
+**Changing the mapping does not migrate notes.** Existing properties are not renamed or rewritten. Marked entries without a valid mapped date are counted as invalid and excluded. Missing title values use the filename; missing thread values are unassigned; missing connections produce no arrows. Restore the previous mapping to read the previous schema again, or deliberately update your notes yourself. Changes to Planner folder or property mapping clear session undo/redo so old actions cannot modify notes under a different configuration.
 
 **Day width** chooses the default zoom. Changes to creation subfolders or zoom keep the current note schema and undo history.
 
@@ -222,11 +220,11 @@ Moving an entry to another folder does not change its thread. Use Obsidian's nor
 
 The plugin has **zero runtime package dependencies** and makes no network requests of its own. It has no account, telemetry, analytics or remote database. Bodies, dates, thread membership and connections live in Markdown. Settings hold search scope, property names, creation folders and zoom; Obsidian's workspace holds view layout.
 
-**Vault discovery:** an empty **Planner folder** lists Markdown paths and checks cached frontmatter across the vault. A named Planner folder walks only that subtree. Bodies are read for marked planner notes and, when Show all dated notes is enabled, qualifying dated notes in scope. Discovery runs on load and when the base, inclusion mode or property mapping changes; later refreshes revisit known paths. Metadata and rename events discover newly included notes and remove notes that no longer qualify or leave the scope. Unrelated notes are not parsed or opened on edit/rename. The community scanner can still report **Vault Enumeration** because whole-vault discovery remains available. Nothing is uploaded or shared.
+**Vault discovery:** an empty **Planner folder** lists Markdown paths and checks cached frontmatter across the vault. A named Planner folder walks only that subtree. Bodies are read only for marked planner notes in scope. Discovery runs on load and when the base or property mapping changes; later refreshes revisit known paths. Metadata and rename events discover newly included notes and remove notes that no longer qualify or leave the scope. Unrelated notes are not parsed or opened on edit/rename. The community scanner can still report **Vault Enumeration** because whole-vault discovery remains available. Nothing is uploaded or shared.
 
 Writes compare the note with its snapshot before saving. A concurrent edit causes a conflict instead of being silently overwritten. Multi-note operations try to roll back earlier writes if a later write fails; a rollback conflict is reported for review. This is optimistic conflict protection, not a filesystem-wide transaction.
 
-Undo history is in memory, capped at 40 operations and cleared on plugin reload or when Planner folder, dated-note inclusion or property mapping changes. It covers edits, moves, connections and task completion. **Creating a note is not undone by deleting it**; the plugin never deletes your notes. YAML values and Markdown content are retained, although YAML formatting and comments may be normalized when properties are edited.
+Undo history is in memory, capped at 40 operations and cleared on plugin reload or when Planner folder or property mapping changes. It covers edits, moves, connections and task completion. **Creating a note is not undone by deleting it**; the plugin never deletes your notes. YAML values and Markdown content are retained, although YAML formatting and comments may be normalized when properties are edited.
 
 ## The story and the credit
 

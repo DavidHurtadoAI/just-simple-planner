@@ -131,7 +131,7 @@ export default class JustSimplePlanner extends Plugin {
 
   private hasPlannerMetadata(file: TFile, oldPath?: string): boolean {
     const cache = this.app.metadataCache.getFileCache(file) ?? (oldPath ? this.app.metadataCache.getCache(oldPath) : null);
-    return file.extension === 'md' && isPlannerFrontmatter(cache?.frontmatter, this.settings);
+    return file.extension === 'md' && isPlannerFrontmatter(cache?.frontmatter);
   }
 
   private forget(path: string): void {
@@ -192,7 +192,7 @@ export default class JustSimplePlanner extends Plugin {
       const { frontmatter: fm, body } = unpack(text);
       if (fm.planner_type === 'thread') {
         this.threads.set(file.path, { path: file.path, title: file.basename, status: fm.status === 'parked' || fm.status === 'closed' ? fm.status : 'active', color: typeof fm.color === 'string' ? fm.color : 'blue', order: typeof fm.order === 'number' ? fm.order : 0 });
-      } else if (isEntryFrontmatter(fm, this.settings)) {
+      } else if (isEntryFrontmatter(fm)) {
         const props = readEntryProperties(fm, this.settings.propertyNames);
         if (!validDay(props.date)) { this.invalid.add(file.path); return; }
         const thread = this.resolveLink(props.thread, file.path) ?? (typeof props.thread === 'string' && !wikiTarget(props.thread) ? `text:${props.thread}` : 'unassigned');
@@ -279,7 +279,7 @@ export default class JustSimplePlanner extends Plugin {
       if (patch.expectedBody !== undefined && document.body !== patch.expectedBody) throw new Error('The note was edited elsewhere. Reopen it before saving.');
       const entry = document.frontmatter.planner_type !== 'thread';
       const editsEntry = patch.body !== undefined || ['date', 'title', 'thread', 'next'].some(key => key in (patch.fields ?? {}));
-      if (entry && editsEntry && !isEntryFrontmatter(document.frontmatter, this.settings)) throw new Error('This note is no longer included in the planner. Review the date and Show all dated notes settings.');
+      if (entry && editsEntry && !isEntryFrontmatter(document.frontmatter)) throw new Error('This note is no longer marked as a planner entry.');
       if (patch.expectedDate !== undefined && document.frontmatter[entry ? this.settings.propertyNames.date : 'date'] !== patch.expectedDate) throw new Error('A date changed while dragging. Try again.');
       const fields = entry ? mapEntryFields(patch.fields ?? {}, this.settings.propertyNames) : patch.fields ?? {};
       for (const [key, value] of Object.entries(fields)) {
@@ -303,7 +303,7 @@ export default class JustSimplePlanner extends Plugin {
     const before = await this.app.vault.read(this.file(source));
     if (generation !== this.indexGeneration) throw new Error('Scope or property mapping changed while connecting. Try again.');
     const document = unpack(before);
-    if (!isEntryFrontmatter(document.frontmatter, this.settings)) throw new Error('The source note is no longer included in the planner.');
+    if (!isEntryFrontmatter(document.frontmatter)) throw new Error('The source note is no longer marked as a planner entry.');
     const value = document.frontmatter[this.settings.propertyNames.next];
     const links: string[] = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
     const exists = links.some(link => this.resolveLink(link, source) === target);

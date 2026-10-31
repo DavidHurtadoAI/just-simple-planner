@@ -8,7 +8,7 @@ test('English defaults use one Planner base and relative creation folders', () =
   assert.equal(defaults.plannerFolder, 'Planner');
   assert.equal(defaults.entryFolder, 'Entries');
   assert.equal(defaults.threadFolder, 'Threads');
-  assert.equal(defaults.showAllDatedNotes, false);
+  assert.equal('showAllDatedNotes' in defaults, false);
   assert.equal(creationFolder(defaults, 'entry'), 'Planner/Entries');
   assert.equal(creationFolder(defaults, 'thread'), 'Planner/Threads');
   assert.deepEqual(defaults.propertyNames, { date: 'date', title: 'title', thread: 'thread', next: 'next' });
@@ -95,7 +95,6 @@ test('only scope and property changes require index and undo reset', () => {
   assert.equal(changesIndex(current, draft), true);
   assert.equal(current.propertyNames.next, 'next');
   assert.equal(changesIndex(current, { ...current, plannerFolder: '' }), true);
-  assert.equal(changesIndex(current, { ...current, showAllDatedNotes: true }), true);
 });
 
 test('clearing history cannot write files and drops both undo and redo', async () => {
@@ -131,26 +130,35 @@ test('legacy scoped folders become relative without changing the old search scop
 });
 
 test('new-format folders are not migrated twice and absent settings use fresh defaults', () => {
-  const saved = { ...defaultSettings(), plannerFolder: 'Cursos', entryFolder: '', showAllDatedNotes: true };
+  const saved = { ...defaultSettings(), plannerFolder: 'Cursos', entryFolder: '' };
   assert.deepEqual(loadSettings(saved), saved);
   assert.deepEqual(loadSettings({}), defaultSettings());
   const bad = loadSettings({ searchEntireVault: false, searchFolder: '../outside', entryFolder: 'Entries' });
   assert.throws(() => validateSettings(bad));
 });
 
-test('dated-note mode uses the selected date key, requires a valid date and excludes thread cards', () => {
-  const off = defaultSettings(), on = { ...off, showAllDatedNotes: true };
+test('legacy dated-note settings are ignored without changing saved paths, mappings or input data', () => {
+  const current = { ...defaultSettings(), plannerFolder: 'Cursos', entryFolder: '', propertyNames: { date: 'scheduled', title: 'headline', thread: 'project', next: 'following' } };
+  for (const showAllDatedNotes of [true, false]) {
+    const saved = { ...current, showAllDatedNotes }, copy = structuredClone(saved);
+    const loaded = loadSettings(saved);
+    assert.deepEqual(loaded, current);
+    assert.equal('showAllDatedNotes' in loaded, false);
+    assert.deepEqual(saved, copy);
+  }
+});
+
+test('only explicit planner markers qualify; dates alone and other types remain ordinary notes', () => {
   const note = { date: '2026-10-31', type: 'Reference' };
   const copy = structuredClone(note);
-  assert.equal(isPlannerFrontmatter(note, off), false);
-  assert.equal(isEntryFrontmatter(note, on), true);
-  assert.equal(isEntryFrontmatter({ ...note, planner_type: 'other' }, on), true);
-  for (const date of ['2026-02-30', '2026-10-31T12:00:00', '', undefined]) assert.equal(isPlannerFrontmatter({ date }, on), false);
-  assert.equal(isEntryFrontmatter({ ...note, planner_type: 'thread' }, on), false);
-  assert.equal(isPlannerFrontmatter({ ...note, planner_type: 'thread' }, off), true);
-  assert.equal(isPlannerFrontmatter({ planner_type: 'entry' }, off), true);
-  const custom = { ...on, propertyNames: { ...on.propertyNames, date: 'scheduled' } };
-  assert.equal(isPlannerFrontmatter(note, custom), false);
-  assert.equal(isPlannerFrontmatter({ scheduled: '2026-10-31' }, custom), true);
+  assert.equal(isPlannerFrontmatter(note), false);
+  assert.equal(isEntryFrontmatter(note), false);
+  for (const planner_type of ['reference', 'other', '', null, ['entry']]) assert.equal(isPlannerFrontmatter({ ...note, planner_type }), false);
+  assert.equal(isPlannerFrontmatter({ scheduled: '2026-10-31' }), false);
+  assert.equal(isPlannerFrontmatter(undefined), false);
+  assert.equal(isEntryFrontmatter({ ...note, planner_type: 'thread' }), false);
+  assert.equal(isPlannerFrontmatter({ ...note, planner_type: 'thread' }), true);
+  assert.equal(isEntryFrontmatter({ ...note, planner_type: 'entry' }), true);
+  assert.equal(isPlannerFrontmatter({ planner_type: 'entry' }), true);
   assert.deepEqual(note, copy);
 });

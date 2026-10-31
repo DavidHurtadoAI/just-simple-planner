@@ -1,5 +1,17 @@
 # Validation
 
+## Explicit planner notes — 0.3.2
+
+On 2026-10-31, `npm run check` passed all twenty-nine unit tests, official Obsidian lint, strict TypeScript, the production build and package checks. The bundle is 59.5 KiB. Central installation and verification passed for 0.3.2 in the canonical `@Nexus-dev` vault.
+
+The updated `scripts/qa-settings.mjs` passed twenty-six native checks. Notes with a valid mapped date but no entry marker, and notes with other marker values, stay excluded; the planner does not load their bodies. Changing an ordinary note's date never opts it in, stale edits and connections are rejected, removing an entry marker opts out, and marked entries still require a valid mapped date. Dated thread notes remain rows, and empty threads survive changing the Planner folder away and back. Unit tests verify that older saved dated-note flags are ignored while paths, mappings and input data are preserved.
+
+The same native suite retained folder scope, relative creation paths, custom property names, modal editing, connections, task changes, exact undo, validation and serialized autosave. Body-read assertions instrument the planner's reader so reads made by other Obsidian components are not attributed to this plugin. The suite restored all original note bytes, the view and the saved settings; additive Spanish fixtures remain archived. The demo retains twenty entries and four threads, with no captured Obsidian errors.
+
+Both README settings screenshots were captured from the actual native Settings window and visually inspected: the dated-note switch and warning are absent, explicit marker requirements are explained, and the folder and property controls remain. Screenshot capture restored the original settings and index without saving. The saved `data.json` retained SHA-256 `793F0FB3A4279C23FAFA7B337CC081683A2AA480F89E48388AF667A105B50914` through installation, native checks and capture.
+
+The sections below record historical validation for their respective versions; dated-note mode was removed in 0.3.2.
+
 ## Dated-note performance warning — 0.3.1
 
 On 2026-10-31, `npm run check` passed all twenty-eight tests, official lint, strict TypeScript, build and package checks. Central installation/verification passed. The warning was checked in the installed settings panel and its native screenshot inspected: it explains that many files can significantly slow the interface and that unchecking the option restores normal performance. The demo retains twenty entries and four threads with no captured errors; screenshot capture preserves the saved settings bytes.

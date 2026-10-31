@@ -5,7 +5,7 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 ## Community recommendations — 0.1.2
 
 - Release files are built and attested by [a GitHub-hosted release workflow](../.github/workflows/release.yml), then verified before those same files are published. Actions are pinned by SHA and signing/publishing permissions are job-scoped. See GitHub's [provenance documentation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
-- **Vault Enumeration** is an explicit optional capability. A named Planner folder limits discovery to that subtree; an empty base searches the whole vault. Bodies are read for marked planner notes and, when Show all dated notes is enabled, notes with a valid mapped date. Thread notes remain rows. Discovery runs on load and on base, inclusion or mapping changes; later refreshes revisit known paths while metadata and rename events discover new candidates. The README discloses both scope and inclusion modes.
+- **Vault Enumeration** is an explicit optional capability. A named Planner folder limits discovery to that subtree; an empty base searches the whole vault. Bodies are read only for marked planner notes in scope. A date alone never adds a note. Thread notes remain rows. Discovery runs on load and on base or mapping changes; later refreshes revisit known paths while metadata and rename events discover new candidates. The README discloses the scope and required entry/thread markers.
 - The container uses a scoped selector instead of `!important`; the package audit rejects that CSS override.
 
 ## Code and lifecycle
@@ -17,7 +17,7 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 - UI uses sentence case, theme variables and namespaced CSS. Inline values describe computed timeline geometry or user-selected colors. Commands have stable IDs and no default global hotkeys.
 - Settings are searchable through definitions on Obsidian 1.13+, with an imperative fallback for older supported versions. Creation paths are normalized and remain inside the vault.
 - The three folder fields are explained in English: a common Planner folder and two optional relative creation subfolders. Empty base means the entire vault; empty children save directly in the base. Missing folders are created on note creation; absolute paths, traversal and file collisions are rejected. Legacy scope is retained, existing destinations inside it become relative, and out-of-base legacy destinations are rebased with a notice. Existing notes are never moved.
-- Settings autosave with inline validation, serialized saves and in-place synchronization. Property keys remain configurable and protected against reserved names. Show all dated notes changes inclusion without adding metadata; edits, tasks, moves and connections use mapped keys for ordinary notes too. Base, inclusion and schema changes clear session undo/redo and reject stale in-flight reads. Zoom and property mappings survive migration.
+- Settings autosave with inline validation, serialized saves and in-place synchronization. Property keys remain configurable and protected against reserved names. Only explicit entry/thread markers are indexed; edits, tasks, moves and connections retain mapped keys. Legacy dated-note settings are ignored without modifying notes. Base and schema changes clear session undo/redo and reject stale in-flight reads. Zoom and property mappings survive migration.
 
 ## Privacy, licensing and packaging
 

@@ -275,7 +275,7 @@ export class PlannerView extends ItemView implements HoverParent {
       const empty = this.scroll.createDiv({ cls: 'jsp-empty' });
       const issue = this.plugin.configurationIssue();
       empty.createEl('h3', { text: issue ? 'Review planner settings' : this.plugin.entries.size || this.plugin.threads.size ? 'No matching threads' : 'Your notes, over time' });
-      empty.createEl('p', { text: issue ?? 'Create a thread or entry. Planner folder sets the scope; leave it empty for the whole vault. Enable Show all dated notes to include existing notes with a valid date.' });
+      empty.createEl('p', { text: issue ?? 'Create a thread or entry. Only notes marked planner_type: entry or planner_type: thread are included. Entries also need a valid date. Planner folder sets the scope, including its subfolders; leave it empty to find marked notes across the vault.' });
       this.button(empty, 'New thread', 'plus', () => new ThreadModal(this.app, this.plugin).open());
     }
     if (this.showTasks) this.renderTasks(entries, rows);
