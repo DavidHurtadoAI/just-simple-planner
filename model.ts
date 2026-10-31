@@ -1,3 +1,5 @@
+import type { PropertyNames } from './settings';
+
 export interface Entry {
   path: string;
   title: string;
@@ -188,4 +190,35 @@ export function isEntryFrontmatter(frontmatter: Record<string, unknown>): boolea
 
 export function isPlannerFrontmatter(frontmatter: Record<string, unknown> | undefined): boolean {
   return Boolean(frontmatter && (frontmatter.planner_type === 'thread' || isEntryFrontmatter(frontmatter)));
+}
+
+export function admissionFields(frontmatter: Record<string, unknown>, names: PropertyNames, date: string, thread?: string): Record<string, unknown> {
+  if (frontmatter.planner_type && frontmatter.planner_type !== 'entry') throw new Error('This note already uses planner_type for another purpose.');
+  if (!validDay(date)) throw new Error('Choose a valid date in YYYY-MM-DD format.');
+  const fields: Record<string, unknown> = { planner_type: 'entry' };
+  if (frontmatter[names.date] !== date) fields[names.date] = date;
+  if (thread !== undefined && frontmatter[names.thread] !== thread) fields[names.thread] = thread;
+  return fields;
+}
+
+// Accept standard Obsidian URIs and note links, never arbitrary external files.
+export function parseNoteDrop(text: string, uriList: string, vault: string): string | null {
+  const lines = (uriList || text).trim().split(/\r?\n/).filter(line => line.trim() && !line.startsWith('#'));
+  if (lines.length !== 1) return null;
+  let value = lines[0].trim();
+  try {
+    if (value.startsWith('obsidian://')) {
+      const uri = new URL(value);
+      if (uri.hostname !== 'open' || uri.searchParams.has('vault') && uri.searchParams.get('vault') !== vault) return null;
+      value = uri.searchParams.get('file') ?? '';
+    } else if (/^\[\[[^[\]\r\n]+\]\]$/.test(value)) {
+      value = wikiTarget(value) ?? '';
+    } else {
+      const markdown = /^\[[^\]\r\n]*\]\((?:<([^>]+)>|([^\s)]+))\)$/.exec(value);
+      if (markdown) value = decodeURIComponent(markdown[1] ?? markdown[2]).split('#')[0];
+      else if (!value.endsWith('.md')) return null;
+    }
+  } catch { return null; }
+  if (!value || /[\r\n]/.test(value) || value.includes('\u0000') || value.startsWith('/') || value.includes('\\') || /^[a-z][a-z\d+.-]*:/i.test(value) || value.split('/').some(part => part === '..' || part === '.')) return null;
+  return value;
 }

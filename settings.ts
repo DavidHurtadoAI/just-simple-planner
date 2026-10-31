@@ -4,7 +4,6 @@ export interface PlannerSettings {
   entryFolder: string;
   threadFolder: string;
   dayWidth: number;
-  plannerFolder: string;
   propertyNames: PropertyNames;
 }
 
@@ -12,27 +11,30 @@ export const DEFAULT_PROPERTIES: Readonly<PropertyNames> = { date: 'date', title
 export const ENTRY_PROPERTIES: EntryProperty[] = ['date', 'title', 'thread', 'next'];
 
 export function defaultSettings(): PlannerSettings {
-  return { plannerFolder: 'Planner', entryFolder: 'Entries', threadFolder: 'Threads', dayWidth: 190, propertyNames: { ...DEFAULT_PROPERTIES } };
+  return { entryFolder: 'Planner/Entries', threadFolder: 'Planner/Threads', dayWidth: 190, propertyNames: { ...DEFAULT_PROPERTIES } };
 }
 
 export function cloneSettings(settings: PlannerSettings): PlannerSettings { return { ...settings, propertyNames: { ...settings.propertyNames } }; }
+
+export function hasLegacyScope(saved: unknown): boolean {
+  return Boolean(saved && typeof saved === 'object' && ['plannerFolder', 'searchFolder', 'searchEntireVault'].some(key => Object.prototype.hasOwnProperty.call(saved, key)));
+}
 
 export function loadSettings(saved: unknown): PlannerSettings {
   const result = defaultSettings();
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return result;
   const data = saved as Record<string, unknown>;
-  if (typeof data.plannerFolder === 'string') {
-    result.plannerFolder = data.plannerFolder;
-    for (const key of ['entryFolder', 'threadFolder'] as const) if (typeof data[key] === 'string') result[key] = data[key];
-  } else if (['entryFolder', 'threadFolder', 'searchEntireVault', 'searchFolder'].some(key => key in data)) {
-    // Older creation paths were vault-relative. Keep the old search scope, then express destinations below it.
-    const legacyFolder = (path: string): string => { try { return cleanFolder(path); } catch { return path; } };
-    result.plannerFolder = data.searchEntireVault === false && typeof data.searchFolder === 'string' ? legacyFolder(data.searchFolder) : '';
-    for (const [key, fallback] of [['entryFolder', 'Planner/Entries'], ['threadFolder', 'Planner/Threads']] as const) {
-      const path = legacyFolder(typeof data[key] === 'string' ? data[key] : fallback);
-      const base = result.plannerFolder;
-      result[key] = !base ? path : path === base ? '' : path.startsWith(`${base}/`) ? path.slice(base.length + 1) : path.split('/').pop() ?? '';
-    }
+  for (const [key, child] of [['entryFolder', 'Entries'], ['threadFolder', 'Threads']] as const) {
+    if (typeof data.plannerFolder === 'string') {
+      const value = typeof data[key] === 'string' ? data[key] : child;
+      try {
+        result[key] = [cleanFolder(data.plannerFolder), cleanFolder(value)].filter(Boolean).join('/');
+      } catch {
+        // Keep the invalid component visible so migration never enables an invalid path.
+        try { cleanFolder(data.plannerFolder); result[key] = value; }
+        catch { result[key] = data.plannerFolder; }
+      }
+    } else if (typeof data[key] === 'string') result[key] = data[key];
   }
   if (typeof data.dayWidth === 'number' && [140, 190, 250].includes(data.dayWidth)) result.dayWidth = data.dayWidth;
   if (data.propertyNames && typeof data.propertyNames === 'object' && !Array.isArray(data.propertyNames)) {
@@ -52,46 +54,21 @@ export function validateSettings(candidate: PlannerSettings): PlannerSettings {
   const result = cloneSettings(candidate);
   result.entryFolder = cleanFolder(result.entryFolder);
   result.threadFolder = cleanFolder(result.threadFolder);
-  result.plannerFolder = cleanFolder(result.plannerFolder);
   if (![140, 190, 250].includes(result.dayWidth)) throw new Error('Choose a valid day width.');
   const used = new Set<string>();
   for (const key of ENTRY_PROPERTIES) {
     const name = result.propertyNames[key].trim();
     const folded = name.toLocaleLowerCase();
-    if (!name || /[\r\n]/.test(name) || name.includes('\u0000')) throw new Error(`Enter a valid ${key} property name.`);
-    if (['planner_type', '__proto__', 'constructor', 'prototype'].includes(folded)) throw new Error(`The property name "${name}" is reserved.`);
+    if (!name || /[\r\n]/.test(name) || name.includes('\u0000')) throw new Error('Enter a valid ' + key + ' property name.');
+    if (['planner_type', '__proto__', 'constructor', 'prototype'].includes(folded)) throw new Error('The property name "' + name + '" is reserved.');
     if (used.has(folded)) throw new Error('Use four different property names for date, title, thread and connections.');
     used.add(folded); result.propertyNames[key] = name;
   }
   return result;
 }
 
-export function pathInScope(path: string, settings: PlannerSettings): boolean {
-  let folder: string;
-  try { folder = cleanFolder(settings.plannerFolder); } catch { return false; }
-  return !folder || path.startsWith(`${folder}/`);
-}
-
-export function folderIntersectsScope(folder: string, settings: PlannerSettings): boolean {
-  let selected: string;
-  try { selected = cleanFolder(settings.plannerFolder); } catch { return false; }
-  return !selected || folder === selected || folder.startsWith(`${selected}/`) || selected.startsWith(`${folder}/`);
-}
-
 export function creationFolder(settings: PlannerSettings, kind: 'entry' | 'thread'): string {
-  return [cleanFolder(settings.plannerFolder), cleanFolder(kind === 'entry' ? settings.entryFolder : settings.threadFolder)].filter(Boolean).join('/');
-}
-
-export function legacyDestinationsChanged(saved: unknown, settings: PlannerSettings): boolean {
-  if (!saved || typeof saved !== 'object' || Array.isArray(saved) || 'plannerFolder' in saved) return false;
-  const data = saved as Record<string, unknown>;
-  try {
-    return (['entry', 'thread'] as const).some(kind => {
-      const key = kind === 'entry' ? 'entryFolder' : 'threadFolder';
-      const previous = typeof data[key] === 'string' ? data[key] : kind === 'entry' ? 'Planner/Entries' : 'Planner/Threads';
-      return cleanFolder(previous) !== creationFolder(settings, kind);
-    });
-  } catch { return false; }
+  return cleanFolder(kind === 'entry' ? settings.entryFolder : settings.threadFolder);
 }
 
 export function readEntryProperties(frontmatter: Record<string, unknown>, names: PropertyNames): Record<EntryProperty, unknown> {
@@ -110,5 +87,5 @@ export function mapEntryFields(fields: Record<string, unknown>, names: PropertyN
 }
 
 export function changesIndex(before: PlannerSettings, after: PlannerSettings): boolean {
-  return before.plannerFolder !== after.plannerFolder || ENTRY_PROPERTIES.some(key => before.propertyNames[key] !== after.propertyNames[key]);
+  return ENTRY_PROPERTIES.some(key => before.propertyNames[key] !== after.propertyNames[key]);
 }

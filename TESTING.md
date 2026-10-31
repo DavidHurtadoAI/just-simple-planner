@@ -1,5 +1,21 @@
 # Validation
 
+## Existing notes and storage-only folders — 0.4.0
+
+On 2026-10-31, `npm run check` passed all thirty-three unit tests, official Obsidian ESLint rules with zero warnings, strict TypeScript, the production build and package audit. Central installation and verification passed in the canonical `@Nexus-dev` vault. The final bundle is 69.9 KiB.
+
+`node scripts/qa-membership.mjs` passed eighteen in-app checks: legacy destinations, cancellation without writes, thread and day drops, Obsidian-prevented drops, shared calendar-date warnings, exact addition/removal Undo and Redo, no-op duplicate prevention, ordinary internal card moves, concurrent body-edit protection, rename and mapping guards, other marker types, scattered files surviving destination changes, creation paths, incremental metadata discovery and settings autosave/validation. It verifies all original note bytes and restores the saved settings exactly. Spanish QA fixtures are additive and retained as archived; the demo returns to twenty entries and four threads. `qa-settings.mjs` now delegates to this current suite; older scope tests remain in previous release tags.
+
+The existing `qa-index.mjs` suite passed twelve checks, including one cached-property discovery pass, no body reads for unrelated notes, incremental enrollment, moves, opt-out and stale-read protection. A new regression case reproduces a schema reset during asynchronous discovery and verifies that a fresh pass restores every marked note. `qa-connections.mjs` passed fifteen checks with trusted Chromium mouse input: hover controls, cross-thread connection dragging, repeated drops, menus, disconnect/Undo, cancellation, edge scrolling and preserved Markdown. The connection driver now focuses and restores the visible test viewport around menu dismissal; hidden or scrolled-away fixtures cannot provide valid pointer coordinates.
+
+Windows UI checks exercised the actual file-explorer Add and Remove menus and review buttons. Chromium's trusted `Input.dispatchDragEvent` protocol exercised an Obsidian URI drop onto a thread header, followed by saving in the real review modal and removing through the real explorer menu. The note kept its date, calendar flag, original path and body. Synthetic DOM cases additionally cover day-cell and already-prevented drops. The Windows drag helper did not produce a complete OS dragover/drop sequence; a fully physical explorer-to-board gesture is therefore not claimed. Physical macOS/mobile dragging and very large vaults remain untested.
+
+All completed suites ended without captured Obsidian errors. Settings screenshots were captured from the actual native Settings window using temporary in-memory defaults, inspected visually, and restored without saving. The enrollment screenshot uses an additive fictional Spanish note and the real modal, captured through Chromium and cancelled without enrollment. The saved development settings retained SHA-256 `5829BBCCCE431B4C9D56B3C0A5E2FC7988C9CFEED2366B8FFFD946F70AB97887` through installation, tests and capture.
+
+## Zoom toolbar buttons removed — included in 0.4.0
+
+On 2026-10-31, `npm run check` passed all twenty-nine tests, official lint, strict TypeScript, the build and package checks. Central installation and verification passed in `@Nexus-dev`. Native checks confirmed that both board and notebook omit Zoom in/out while retaining Earlier, Today, Later, Undo, Redo and Tasks. Day width remains configurable in settings. The original view was restored, the twenty entries and four threads remain, saved settings retained the same SHA-256, and Obsidian captured no errors.
+
 ## Compact layout — 0.3.3
 
 On 2026-10-31, `npm run check` passed all twenty-nine tests, official Obsidian lint, strict TypeScript, the production build and package checks. The central installer installed and verified the working build in the canonical `@Nexus-dev` vault. The final 0.3.3 release build was checked and installed again before publication.

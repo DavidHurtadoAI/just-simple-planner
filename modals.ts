@@ -1,6 +1,7 @@
 import { Modal, Setting, Notice, SuggestModal, type App } from 'obsidian';
 import type JustSimplePlanner from './main';
-import { validDay, type Entry } from './model';
+import type { MembershipDraft } from './main';
+import { validDay, admissionFields, type Entry } from './model';
 
 export class EntryModal extends Modal {
   private saving = false;
@@ -73,4 +74,64 @@ export class ConnectModal extends SuggestModal<Entry> {
   }
   renderSuggestion(entry: Entry, el: HTMLElement): void { el.createDiv({ text: entry.title }); el.createEl('small', { text: `${entry.date} · ${this.plugin.rows().find(row => row.path === entry.thread)?.title ?? 'Unassigned'}` }); }
   onChooseSuggestion(entry: Entry): void { void this.plugin.perform(() => this.plugin.connect(this.source.path, entry.path)); }
+}
+
+export class MembershipModal extends Modal {
+  private saving = false;
+  constructor(app: App, private readonly plugin: JustSimplePlanner, private readonly draft: MembershipDraft, private readonly remove: boolean) { super(app); }
+
+  onOpen(): void {
+    this.modalEl.addClass('jsp-membership-modal');
+    this.setTitle(this.remove ? 'Remove note from planner' : this.draft.frontmatter.planner_type === 'entry' ? 'Update planner entry' : 'Add note to planner');
+    this.contentEl.createEl('strong', { text: this.draft.title });
+    this.contentEl.createEl('p', { cls: 'jsp-membership-path', text: this.draft.path });
+    this.contentEl.createEl('p', { text: this.remove
+      ? 'Only planner_type: entry will be removed. The note, its date, thread, connections and calendar properties are kept. Undo in the planner restores the entry.'
+      : 'This updates properties in the original note. The file stays in its current folder and is not duplicated. Other properties and the Markdown body are kept.' });
+    let date = this.draft.date;
+    let thread = this.draft.thread;
+    const preview = this.contentEl.createDiv({ cls: 'jsp-membership-preview', attr: { 'aria-live': 'polite' } });
+    let update = (): void => {};
+    if (!this.remove) {
+      new Setting(this.contentEl).setName('Date').setDesc('Uses the configured property: ' + this.plugin.settings.propertyNames.date + '. A valid YYYY-MM-DD date is required.').addText(input => {
+        input.inputEl.type = 'date'; input.setValue(date).onChange(value => { date = value; update(); });
+      });
+      new Setting(this.contentEl).setName('Thread').setDesc('Choose a thread, or leave the entry unassigned.').addDropdown(dropdown => {
+        dropdown.addOption('', 'Unassigned');
+        const rows = this.plugin.rows().filter(row => row.path !== 'unassigned');
+        for (const row of rows) dropdown.addOption(row.path, row.title);
+        if (thread && !rows.some(row => row.path === thread)) dropdown.addOption(thread, 'Keep existing thread');
+        dropdown.setValue(thread).onChange(value => { thread = value; update(); });
+      });
+    }
+    const error = this.contentEl.createDiv({ cls: 'jsp-membership-error', attr: { role: 'alert' } });
+    new Setting(this.contentEl).addButton(button => button.setButtonText('Cancel').onClick(() => this.close())).addButton(button => {
+      button.setButtonText(this.remove ? 'Remove from planner' : this.draft.frontmatter.planner_type === 'entry' ? 'Update entry' : 'Add to planner').setCta();
+      const describe = (value: unknown): string => value === undefined ? '(not set)' : typeof value === 'string' ? value : JSON.stringify(value);
+      update = (): void => {
+        preview.empty(); error.empty(); button.setDisabled(this.saving || !this.remove && !validDay(date));
+        if (this.remove) { preview.createDiv({ text: 'planner_type: entry → (removed)' }); return; }
+        if (!validDay(date)) { preview.createDiv({ text: 'Choose a valid date before adding this note.' }); return; }
+        const fields = admissionFields(this.draft.frontmatter, this.plugin.settings.propertyNames, date, thread === this.draft.originalThread ? undefined : this.plugin.threadValue(thread));
+        const changes = Object.entries(fields).filter(([key, value]) => this.draft.frontmatter[key] !== value);
+        for (const [key, value] of changes) preview.createDiv({ text: key + ': ' + describe(this.draft.frontmatter[key]).slice(0, 180) + ' → ' + describe(value).slice(0, 180) });
+        if (!changes.length) preview.createDiv({ text: 'This note is already included with this date and thread.' });
+        const dateKey = this.plugin.settings.propertyNames.date;
+        if (this.draft.frontmatter[dateKey] !== undefined && this.draft.frontmatter[dateKey] !== date) preview.createEl('p', { cls: 'jsp-membership-warning', text: 'Changing ' + dateKey + ' also changes the date in calendars or other views that use this property.' });
+        else if (this.draft.frontmatter[dateKey] === date) preview.createEl('p', { text: 'The existing date is kept.' });
+      };
+      button.onClick(() => {
+        if (this.saving || !this.remove && !validDay(date)) return;
+        this.saving = true; button.setDisabled(true); error.empty();
+        void (async () => {
+          try { await this.plugin.saveMembership(this.draft, date, thread, this.remove); this.close(); }
+          catch (cause) { error.setText(cause instanceof Error ? cause.message : String(cause)); }
+          finally { this.saving = false; button.setDisabled(!this.remove && !validDay(date)); }
+        })();
+      });
+    });
+    update();
+  }
+
+  onClose(): void { this.contentEl.empty(); }
 }

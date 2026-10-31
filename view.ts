@@ -25,7 +25,6 @@ export class PlannerView extends ItemView implements HoverParent {
   private focusButton!: HTMLButtonElement;
   private undoButton!: HTMLButtonElement;
   private redoButton!: HTMLButtonElement;
-  private zoomButtons: HTMLButtonElement[] = [];
   private selected = new Set<string>();
   private collapsed = new Set<string>();
   private focusPath: string | null = null;
@@ -64,6 +63,15 @@ export class PlannerView extends ItemView implements HoverParent {
     this.render();
   }
 
+  revealEntry(entry: Entry): void {
+    this.mode = 'board'; this.search = ''; this.status = 'all';
+    this.selected = new Set([entry.path]); this.activeThread = entry.thread;
+    this.collapsed.delete(entry.thread);
+    this.root.querySelector<HTMLInputElement>('.jsp-search')!.value = '';
+    this.root.querySelector<HTMLSelectElement>('[aria-label="Thread status"]')!.value = 'all';
+    this.jump(entry.date);
+  }
+
   async onOpen(): Promise<void> {
     this.contentEl.empty();
     this.contentEl.addClass('jsp-container');
@@ -87,7 +95,6 @@ export class PlannerView extends ItemView implements HoverParent {
     const date = navigation.createEl('input', { attr: { type: 'date', 'aria-label': 'Go to date', title: 'Go to date' } });
     date.value = today();
     this.registerDomEvent(date, 'change', () => { if (validDay(date.value)) this.jump(date.value); });
-    this.zoomButtons = [this.button(navigation, 'Zoom out', 'zoom-out', () => this.zoom(-1)), this.button(navigation, 'Zoom in', 'zoom-in', () => this.zoom(1))];
     this.undoButton = this.button(navigation, 'Undo', 'undo-2', () => { void this.plugin.perform(() => this.plugin.history.undo()); });
     this.redoButton = this.button(navigation, 'Redo', 'redo-2', () => { void this.plugin.perform(() => this.plugin.history.redo()); });
     this.focusButton = this.button(navigation, 'Clear focus', 'focus', () => { this.focusPath = null; this.render(); });
@@ -100,6 +107,17 @@ export class PlannerView extends ItemView implements HoverParent {
     this.registerDomEvent(this.scroll, 'scroll', () => this.onScroll(), { passive: true });
     this.configurePan();
     this.configureConnections();
+    this.registerDomEvent(this.root, 'dragenter', event => {
+      if (this.isExternalNoteDrag(event)) this.root.addClass('jsp-importing');
+    });
+    this.registerDomEvent(this.root, 'dragleave', event => {
+      if (!this.root.contains(event.relatedTarget as Node | null)) this.root.removeClass('jsp-importing');
+    });
+    this.registerDomEvent(this.root.doc, 'dragend', () => {
+      this.root.removeClass('jsp-importing');
+      for (const target of this.root.querySelectorAll('.is-note-drop-target')) target.removeClass('is-note-drop-target');
+      for (const preview of this.root.querySelectorAll('.jsp-drop-preview')) preview.remove();
+    });
     this.registerDomEvent(this.root, 'keydown', event => this.onKey(event));
     const observer = new ResizeObserver(() => this.queueEdges());
     observer.observe(this.scroll);
@@ -241,13 +259,6 @@ export class PlannerView extends ItemView implements HoverParent {
     }
   }
 
-  private zoom(direction: number): void {
-    const widths = [140, 190, 250];
-    const day = this.centerDay();
-    const dayWidth = widths[Math.max(0, Math.min(2, widths.indexOf(this.plugin.settings.dayWidth) + direction))];
-    void this.plugin.perform(async () => { await this.plugin.applySettings({ ...this.plugin.settings, dayWidth }); this.jump(day); });
-  }
-
   render(): void {
     if (!this.root || this.dragging || this.panning || this.linking) return;
     const active = this.root.doc.activeElement as HTMLElement | null;
@@ -266,7 +277,6 @@ export class PlannerView extends ItemView implements HoverParent {
     this.undoButton.disabled = !this.plugin.history.canUndo || this.plugin.history.busy;
     this.redoButton.disabled = !this.plugin.history.canRedo || this.plugin.history.busy;
     this.focusButton.hidden = !this.focusPath;
-    this.zoomButtons.forEach(button => { button.hidden = this.mode === 'notebook'; });
     this.rail.hidden = !this.showTasks;
     this.root.toggleClass('jsp-has-tasks', this.showTasks);
     if (this.mode === 'board') this.renderBoard(rows, entries);
@@ -275,8 +285,9 @@ export class PlannerView extends ItemView implements HoverParent {
       const empty = this.scroll.createDiv({ cls: 'jsp-empty' });
       const issue = this.plugin.configurationIssue();
       empty.createEl('h3', { text: issue ? 'Review planner settings' : this.plugin.entries.size || this.plugin.threads.size ? 'No matching threads' : 'Your notes, over time' });
-      empty.createEl('p', { text: issue ?? 'Create a thread or entry. Only notes marked planner_type: entry or planner_type: thread are included. Entries also need a valid date. Planner folder sets the scope, including its subfolders; leave it empty to find marked notes across the vault.' });
+      empty.createEl('p', { text: issue ?? 'Create a thread or entry, right-click a Markdown note in the file explorer and choose Add note to planner, or drop a note here. Only marked entries with a valid configured date appear; notes can stay anywhere in the vault.' });
       this.button(empty, 'New thread', 'plus', () => new ThreadModal(this.app, this.plugin).open());
+      this.bindNoteDrop(empty, null, false);
     }
     if (this.showTasks) this.renderTasks(entries, rows);
     const count = rows.reduce((sum, row) => sum + entries.filter(entry => entry.thread === row.path).length, 0);
@@ -332,6 +343,8 @@ export class PlannerView extends ItemView implements HoverParent {
         this.button(label, 'Add entry', 'plus', () => this.plugin.newEntry(today(), row.path));
       }
       label.addEventListener('contextmenu', event => { event.preventDefault(); this.threadMenu(event, row); });
+      label.title = 'Drop an existing note here to keep its date. You can review the changes before saving.';
+      this.bindNoteDrop(label, row, false);
       const lane = element.createDiv({ cls: 'jsp-lane', attr: { 'data-thread': row.path } });
       lane.style.width = `${DAYS * width}px`;
       const todayIndex = dayNumber(today()) - dayNumber(this.firstDay);
@@ -354,6 +367,7 @@ export class PlannerView extends ItemView implements HoverParent {
       });
       lane.addEventListener('dragleave', event => { if (!lane.contains(event.relatedTarget as Node)) lane.removeClass('is-drop-target'); });
       lane.addEventListener('drop', event => this.drop(event, lane, row));
+      this.bindNoteDrop(lane, row, true);
     }
     this.edgeLayer = document.createElementNS(SVG, 'svg');
     this.edgeLayer.classList.add('jsp-edges');
@@ -448,6 +462,45 @@ export class PlannerView extends ItemView implements HoverParent {
     this.footer.setText(`${this.plugin.entries.size} entries · ${this.plugin.rows().length} threads · ${this.selected.size} selected · All changes are saved to Markdown`);
   }
 
+  private isExternalNoteDrag(event: DragEvent): boolean {
+    const types = Array.from(event.dataTransfer?.types ?? []);
+    return !this.dragging && !types.includes('application/x-just-simple-planner') && types.some(type => type === 'text/plain' || type === 'text/uri-list');
+  }
+
+  private bindNoteDrop(target: HTMLElement, row: Thread | null, dated: boolean): void {
+    const clear = (): void => { target.removeClass('is-note-drop-target'); target.querySelector(':scope > .jsp-drop-preview')?.remove(); };
+    const destination = (event: DragEvent): string | undefined => {
+      if (!dated) return undefined;
+      const index = Math.floor((event.clientX - target.getBoundingClientRect().left) / this.plugin.settings.dayWidth);
+      return index >= 0 && index < DAYS ? shiftDay(this.firstDay, index) : undefined;
+    };
+    target.addEventListener('dragover', event => {
+      if (!this.isExternalNoteDrag(event) || !event.dataTransfer) return;
+      const date = destination(event);
+      if (dated && !date) return;
+      event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = 'copy';
+      target.addClass('is-note-drop-target');
+      let preview = target.querySelector<HTMLElement>(':scope > .jsp-drop-preview');
+      if (!preview) preview = target.createDiv({ cls: 'jsp-drop-preview', attr: { role: 'status' } });
+      preview.setText('Add note' + (row ? ' to ' + row.title : ' to planner') + ' · ' + (date ? 'propose ' + date : 'keep its existing date') + '. Review before saving; the file stays in place.');
+      if (dated) {
+        const index = Math.floor((event.clientX - target.getBoundingClientRect().left) / this.plugin.settings.dayWidth);
+        preview.style.left = (index * this.plugin.settings.dayWidth + 4) + 'px';
+        preview.style.width = (this.plugin.settings.dayWidth - 8) + 'px';
+      }
+    });
+    target.addEventListener('dragleave', event => { if (!target.contains(event.relatedTarget as Node | null)) clear(); });
+    target.addEventListener('drop', event => {
+      if (this.dragging || !event.dataTransfer || Array.from(event.dataTransfer.types).includes('application/x-just-simple-planner')) return;
+      event.preventDefault(); event.stopPropagation(); clear(); this.root.removeClass('jsp-importing');
+      const date = destination(event);
+      if (dated && !date) return;
+      const file = this.plugin.droppedNote(event.dataTransfer);
+      if (!file) { new Notice('Drop one existing Markdown note from this vault. Files are not imported or copied.'); return; }
+      void this.plugin.perform(() => this.plugin.reviewNote(file, { thread: row?.path ?? '', date }));
+    });
+  }
+
   private drop(event: DragEvent, lane: HTMLElement, row: Thread): void {
     if (!this.dragging) return;
     event.preventDefault();
@@ -472,12 +525,14 @@ export class PlannerView extends ItemView implements HoverParent {
     if (!rows.some(row => row.path === this.activeThread)) this.activeThread = rows[0]?.path ?? '';
     for (const row of rows) {
       const button = sidebar.createEl('button', { text: row.title });
+      this.bindNoteDrop(button, row, false);
       button.toggleClass('is-active', row.path === this.activeThread);
       button.addEventListener('click', () => { this.activeThread = row.path; this.render(); });
     }
     const content = notebook.createDiv({ cls: 'jsp-notebook-content' });
     const row = rows.find(row => row.path === this.activeThread);
     if (!row) return;
+    this.bindNoteDrop(content, row, false);
     content.style.setProperty('--jsp-thread-color', this.color(row));
     content.createEl('h2', { text: row.title });
     this.button(content, 'New entry', 'plus', () => this.plugin.newEntry(today(), row.path));
@@ -520,6 +575,8 @@ export class PlannerView extends ItemView implements HoverParent {
     menu.addSeparator();
     menu.addItem(item => item.setTitle('Select connected flow').setIcon('workflow').onClick(() => { this.selected = connected(this.plugin.entries, [entry.path]); this.updateSelection(); }));
     menu.addItem(item => item.setTitle('Spotlight').setIcon('focus').onClick(() => { this.focusPath = entry.path; this.render(); }));
+    menu.addSeparator();
+    menu.addItem(item => item.setTitle('Remove note from planner…').setIcon('minus-circle').onClick(() => { void this.plugin.perform(() => this.plugin.reviewNote(this.plugin.file(entry.path), { remove: true })); }));
     menu.showAtMouseEvent(event);
   }
 

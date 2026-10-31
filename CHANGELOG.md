@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 — 2026-10-31
+
+- Add existing Markdown notes from anywhere in the vault using the file-explorer context menu or drag and drop. A date alone never includes a note.
+- Drop onto a thread header or notebook thread to keep the existing date; drop onto a day cell to propose that date. Review exact property changes and a calendar-date warning before saving. Files are never moved or duplicated.
+- Add Remove note from planner to file and card menus. Removal deletes only the entry marker; dates, calendar properties, thread, connections and body are preserved. Adding and removing support exact Undo/Redo and reject stale edits, renames and property mappings.
+- Replace the common Planner folder scope with two vault-relative creation destinations: Threads folder and New entries folder. Combine older bases and subfolders to preserve full destinations without moving files. Previously marked notes outside the old scope now appear; ordinary dated notes stay excluded.
+- Discover explicit markers in one cooperative cached-metadata pass across the vault. Later metadata events update membership without rescanning, and link resolution uses existing snapshots rather than rereading bodies.
+- Remove the Zoom in/out toolbar buttons; Day width remains available in settings. Retain the compact layout and existing view controls.
+- Explain enrollment, shared calendar dates, removal, storage locations and migration in settings and the README.
+
 ## 0.3.3 — 2026-10-31
 
 - Make the board, notebook and task panel more compact with smaller controls, headings and spacing.

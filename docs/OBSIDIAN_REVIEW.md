@@ -5,10 +5,12 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 ## Community recommendations — 0.1.2
 
 - Release files are built and attested by [a GitHub-hosted release workflow](../.github/workflows/release.yml), then verified before those same files are published. Actions are pinned by SHA and signing/publishing permissions are job-scoped. See GitHub's [provenance documentation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
-- **Vault Enumeration** is an explicit optional capability. A named Planner folder limits discovery to that subtree; an empty base searches the whole vault. Bodies are read only for marked planner notes in scope. A date alone never adds a note. Thread notes remain rows. Discovery runs on load and on base or mapping changes; later refreshes revisit known paths while metadata and rename events discover new candidates. The README discloses the scope and required entry/thread markers.
+- **Vault Enumeration** is intentional: explicitly marked notes can live anywhere. One initial cached-frontmatter pass yields every 500 files and reads bodies only for marked entry/thread notes. Metadata events discover new enrollment incrementally; resolved links refresh existing snapshots in memory. No inclusion based on date alone is available. The README explains this capability.
 - The container uses a scoped selector instead of `!important`; the package audit rejects that CSS override.
 
 ## Code and lifecycle
+
+The 0.4.0 changes were checked on 2026-10-31 with the official linter, package audit and native membership, indexing and connection suites. See [TESTING.md](../TESTING.md) for current evidence and limits.
 
 - `eslint-plugin-obsidianmd` recommended rules run with zero warnings in `npm run check` and GitHub Actions. Strict TypeScript and model tests run in the same check.
 - Runtime code uses the public Obsidian API and browser APIs. No Node.js or Electron imports, global debugging `app`, dynamic code execution or unbundled package dependencies.
@@ -16,8 +18,8 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 - App events and persistent DOM listeners use registration helpers. Markdown previews have a render-scoped component; observers and animation frames are cleaned up. Plugin unload does not detach workspace leaves.
 - UI uses sentence case, theme variables and namespaced CSS. Inline values describe computed timeline geometry or user-selected colors. Commands have stable IDs and no default global hotkeys.
 - Settings are searchable through definitions on Obsidian 1.13+, with an imperative fallback for older supported versions. Creation paths are normalized and remain inside the vault.
-- The three folder fields are explained in English: a common Planner folder and two optional relative creation subfolders. Empty base means the entire vault; empty children save directly in the base. Missing folders are created on note creation; absolute paths, traversal and file collisions are rejected. Legacy scope is retained, existing destinations inside it become relative, and out-of-base legacy destinations are rebased with a notice. Existing notes are never moved.
-- Settings autosave with inline validation, serialized saves and in-place synchronization. Property keys remain configurable and protected against reserved names. Only explicit entry/thread markers are indexed; edits, tasks, moves and connections retain mapped keys. Legacy dated-note settings are ignored without modifying notes. Base and schema changes clear session undo/redo and reject stale in-flight reads. Zoom and property mappings survive migration.
+- Two English, vault-relative creation paths are storage locations only. Threads folder holds new thread notes; New entries folder holds newly created entries. Legacy base and child paths are combined without moving files. Existing marked notes are discovered anywhere; original metadata and bodies are preserved.
+- Settings autosave with inline validation, serialized saves and in-place synchronization. Property names remain configurable and reserved keys protected. Only mapping changes reset the index and history. Enrollment and removal use exact-snapshot Vault.process writes and Undo/Redo; external edits, renames and stale mappings reject the review without overwriting the note.
 
 ## Privacy, licensing and packaging
 
