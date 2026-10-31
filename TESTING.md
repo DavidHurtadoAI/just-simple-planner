@@ -1,5 +1,11 @@
 # Validation
 
+## Left-aligned thread titles — 0.4.1
+
+On 2026-10-31, `npm run check` passed all thirty-three unit tests, official lint with zero warnings, strict TypeScript, the build and package audit. Central installation and verification passed in `@Nexus-dev`.
+
+Native checks covered all four demo threads in expanded and folded states. Computed styles use `justify-content: flex-start` and `text-align: left`; arrows start at their button's left edge, and all titles share the same horizontal starting position regardless of title length. A direct Chromium screenshot was visually inspected. The demo retains twenty entries and four threads, with no captured errors; the view was restored and saved settings kept their original SHA-256.
+
 ## Existing notes and storage-only folders — 0.4.0
 
 On 2026-10-31, `npm run check` passed all thirty-three unit tests, official Obsidian ESLint rules with zero warnings, strict TypeScript, the production build and package audit. Central installation and verification passed in the canonical `@Nexus-dev` vault. The final bundle is 69.9 KiB.

@@ -46,7 +46,7 @@
 .jsp-day.is-weekend { background-color: color-mix(in srgb, var(--background-secondary) 60%, transparent); }
 .jsp-row { position: relative; border-bottom: 1px solid var(--background-modifier-border); min-height: 46px; }
 .jsp-thread-label { position: sticky; left: 0; z-index: 4; padding: 10px 10px 6px; background: var(--background-primary); border-right: 1px solid var(--background-modifier-border); box-shadow: inset 3px 0 var(--jsp-thread-color); overflow: hidden; }
-.jsp-view .jsp-thread-toggle { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; padding: 0; background: transparent; box-shadow: none; border: 0; height: auto; font-size: 12px; font-weight: 600; white-space: normal; color: var(--text-normal); }
+.jsp-view .jsp-thread-toggle { display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: 100%; text-align: left; padding: 0; background: transparent; box-shadow: none; border: 0; height: auto; font-size: 12px; font-weight: 600; white-space: normal; color: var(--text-normal); }
 .jsp-thread-toggle svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--jsp-thread-color); }
 .jsp-thread-toggle span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .jsp-thread-meta { color: var(--text-muted); font-size: 11px; margin: 6px 0 6px 19px; }

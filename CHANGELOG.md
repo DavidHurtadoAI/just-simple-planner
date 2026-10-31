@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 — 2026-10-31
+
+- Align thread titles and their disclosure arrows to the left in both expanded and folded rows. Short titles now share the same starting position as longer titles instead of being centered by Obsidian's default button layout.
+
 ## 0.4.0 — 2026-10-31
 
 - Add existing Markdown notes from anywhere in the vault using the file-explorer context menu or drag and drop. A date alone never includes a note.
