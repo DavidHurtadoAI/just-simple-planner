@@ -1,3 +1,5 @@
+import type { PlannerSettings } from './settings';
+
 export interface Entry {
   path: string;
   title: string;
@@ -181,4 +183,11 @@ export class History {
     this.busy = true;
     try { await action(); } finally { this.busy = false; }
   }
+}
+export function isEntryFrontmatter(frontmatter: Record<string, unknown>, settings: PlannerSettings): boolean {
+  return frontmatter.planner_type !== 'thread' && (frontmatter.planner_type === 'entry' || settings.showAllDatedNotes && validDay(frontmatter[settings.propertyNames.date]));
+}
+
+export function isPlannerFrontmatter(frontmatter: Record<string, unknown> | undefined, settings: PlannerSettings): boolean {
+  return Boolean(frontmatter && (frontmatter.planner_type === 'thread' || isEntryFrontmatter(frontmatter, settings)));
 }

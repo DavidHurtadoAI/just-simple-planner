@@ -1,5 +1,15 @@
 # Validation
 
+## Common base and ordinary dated notes — 0.3.0
+
+On 2026-10-31, `npm run check` passed official Obsidian lint, strict TypeScript, all twenty-eight unit tests, the build and package audit. The installed development build passed thirty in-app cases in `scripts/qa-settings.mjs`. Coverage includes a named base without whole-vault enumeration, optional relative subfolders, empty child paths, creation of a previously absent base on first note creation, empty-thread recovery, folder boundary events, autosave validation/concurrency/failure recovery, legacy scope/path adaptation and all prior mapped-note editing checks.
+
+Ordinary-note checks create Spanish fixtures with a custom `scheduled` date property and no entry marker. Enabling the switch discovers them without changing bytes; missing titles and threads use the filename and Unassigned. Dated thread notes remain rows. Other marker values with valid dates qualify, while invalid dates and the wrong date key do not. Actual modal edits, DOM drag/drop rescheduling, tasks, connections, disconnect and exact undo work without adding planner_type. Adding/removing a date updates inclusion incrementally; disabling the mode removes ordinary cards without rewriting them and rejects stale edits to excluded notes.
+
+The suite restores original settings bytes, all original note contents and the original view, and leaves twenty demo entries, four threads and no captured errors. Additive QA fixtures remain archived. Folder-event checks use `Vault.rename`; full incoming-link rewriting is outside this suite. Native settings screenshots were refreshed with temporary English defaults and inspected. Capturing restores the original index and does not save the example settings.
+
+The final 0.3.0 package passed central installation/verification and an in-app check after reload: all four new controls present, obsolete scope/apply controls absent, twenty entries, four threads, no invalid notes, no pending saves and no captured errors. The saved `data.json` retained the same SHA-256 through installation, reload and opening/closing settings.
+
 ## Automatic settings saving — 0.2.2
 
 On 2026-10-31, `npm run check` passed official Obsidian lint, strict TypeScript, all twenty-four unit tests, the build and package audit. The installed development build passed all twenty-three cases in `scripts/qa-settings.mjs`, including the existing property-mapping operations and the new autosave cases: no Apply button, immediate scope switches, recovery of an empty thread, blur/Enter/close saving, inline errors, independent edits while another field is invalid, failed-switch rollback, immediate dropdowns, preservation of unfinished text, overlapping saves with a newer edit, simulated storage failure and successful retry, and legacy rendering with autosave.
@@ -62,9 +72,9 @@ Result: **14 unit tests and 12 in-app integration checks passed**. The central i
 
 ## Automatic checks
 
-`npm run check` runs the official Obsidian ESLint rules with zero warnings, strict TypeScript checking, twenty-four Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior. Settings tests cover isolated English defaults, legacy loading, folder validation and scope boundaries, independent creation folders, reserved and duplicate keys, exact mapped reads, simultaneous mapped writes, index-reset conditions and history clearing.
+`npm run check` runs the official Obsidian ESLint rules with zero warnings, strict TypeScript checking, twenty-eight Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior. Settings tests cover isolated English defaults, legacy loading, folder validation and scope boundaries, independent creation folders, reserved and duplicate keys, exact mapped reads, simultaneous mapped writes, index-reset conditions and history clearing.
 
-The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 58.6 KiB, with Obsidian as its only external runtime module.
+The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 60.5 KiB, with Obsidian as its only external runtime module.
 
 ## Direct connection widgets — 2026-10-30
 

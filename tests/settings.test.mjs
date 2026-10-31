@@ -1,13 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultSettings, loadSettings, cloneSettings, cleanFolder, validateSettings, pathInScope, folderIntersectsScope, readEntryProperties, mapEntryFields, changesIndex } from '../settings.ts';
-import { History } from '../model.ts';
+import { defaultSettings, loadSettings, cloneSettings, cleanFolder, validateSettings, pathInScope, folderIntersectsScope, readEntryProperties, mapEntryFields, changesIndex, creationFolder, legacyDestinationsChanged } from '../settings.ts';
+import { History, isEntryFrontmatter, isPlannerFrontmatter } from '../model.ts';
 
-test('English defaults preserve the existing schema and use the entire vault', () => {
+test('English defaults use one Planner base and relative creation folders', () => {
   const defaults = defaultSettings();
-  assert.equal(defaults.entryFolder, 'Planner/Entries');
-  assert.equal(defaults.threadFolder, 'Planner/Threads');
-  assert.equal(defaults.searchEntireVault, true);
+  assert.equal(defaults.plannerFolder, 'Planner');
+  assert.equal(defaults.entryFolder, 'Entries');
+  assert.equal(defaults.threadFolder, 'Threads');
+  assert.equal(defaults.showAllDatedNotes, false);
+  assert.equal(creationFolder(defaults, 'entry'), 'Planner/Entries');
+  assert.equal(creationFolder(defaults, 'thread'), 'Planner/Threads');
   assert.deepEqual(defaults.propertyNames, { date: 'date', title: 'title', thread: 'thread', next: 'next' });
   defaults.propertyNames.date = 'fecha';
   assert.equal(defaultSettings().propertyNames.date, 'date');
@@ -20,7 +23,8 @@ test('legacy saved folders and zoom survive without adding a restriction or chan
   assert.equal(loaded.entryFolder, saved.entryFolder);
   assert.equal(loaded.threadFolder, '');
   assert.equal(loaded.dayWidth, 140);
-  assert.equal(loaded.searchEntireVault, true);
+  assert.equal(loaded.plannerFolder, '');
+  assert.equal(creationFolder(loaded, 'entry'), 'Notas/Entradas');
   assert.equal(loaded.propertyNames.next, 'next');
   assert.deepEqual(saved, copy);
   assert.deepEqual(loadSettings(null), defaultSettings());
@@ -30,27 +34,28 @@ test('folder validation normalizes vault-relative paths and rejects absolute pat
   assert.equal(cleanFolder(' Projects\\Work//Sub/ '), 'Projects/Work/Sub');
   assert.equal(cleanFolder(''), '');
   for (const path of ['/outside', 'C:\\outside', '\\\\server\\share', '../outside', 'Folder/../Outside', './Folder']) assert.throws(() => cleanFolder(path));
-  const scoped = { ...defaultSettings(), searchEntireVault: false };
-  assert.throws(() => validateSettings(scoped), /Search folder/);
+  for (const key of ['plannerFolder', 'entryFolder', 'threadFolder']) assert.throws(() => validateSettings({ ...defaultSettings(), [key]: '../outside' }));
 });
 
 test('scoped paths include descendants and exclude same-prefix siblings and unrelated folders', () => {
-  const settings = { ...defaultSettings(), searchEntireVault: false, searchFolder: 'Projects/Work' };
+  const settings = { ...defaultSettings(), plannerFolder: 'Projects/Work' };
   assert.equal(pathInScope('Projects/Work/Entrada.md', settings), true);
   assert.equal(pathInScope('Projects/Work/Sub/Entrada.md', settings), true);
   for (const path of ['Projects/Work2/Entrada.md', 'Projects/Personal/Entrada.md', 'Entrada.md']) assert.equal(pathInScope(path, settings), false);
   assert.equal(folderIntersectsScope('Projects', settings), true);
   assert.equal(folderIntersectsScope('Projects/Work/Sub', settings), true);
   assert.equal(folderIntersectsScope('Projects/Work2', settings), false);
-  assert.equal(pathInScope('Anywhere/Entry.md', { ...settings, searchEntireVault: true }), true);
-  assert.equal(pathInScope('Entry.md', { ...settings, searchFolder: '' }), false);
+  assert.equal(pathInScope('Anywhere/Entry.md', { ...settings, plannerFolder: '' }), true);
+  assert.equal(pathInScope('Entry.md', { ...settings, plannerFolder: '' }), true);
 });
 
 test('creation folders never determine the search scope', () => {
-  const settings = { ...defaultSettings(), entryFolder: 'Somewhere', threadFolder: '', searchEntireVault: false, searchFolder: 'Projects' };
+  const settings = { ...defaultSettings(), entryFolder: 'Somewhere', threadFolder: '', plannerFolder: 'Projects' };
   assert.equal(pathInScope('Projects/Entry.md', settings), true);
   assert.equal(pathInScope('Somewhere/Entry.md', settings), false);
   assert.equal(pathInScope('Root.md', settings), false);
+  assert.equal(creationFolder(settings, 'entry'), 'Projects/Somewhere');
+  assert.equal(creationFolder(settings, 'thread'), 'Projects');
 });
 
 test('property mapping validates duplicates, reserved names and blank names before saving', () => {
@@ -89,7 +94,8 @@ test('only scope and property changes require index and undo reset', () => {
   draft.propertyNames.next = 'following';
   assert.equal(changesIndex(current, draft), true);
   assert.equal(current.propertyNames.next, 'next');
-  assert.equal(changesIndex(current, { ...current, searchEntireVault: false }), true);
+  assert.equal(changesIndex(current, { ...current, plannerFolder: '' }), true);
+  assert.equal(changesIndex(current, { ...current, showAllDatedNotes: true }), true);
 });
 
 test('clearing history cannot write files and drops both undo and redo', async () => {
@@ -98,4 +104,53 @@ test('clearing history cannot write files and drops both undo and redo', async (
   await history.undo(); assert.equal(history.canRedo, true);
   history.clear(); assert.equal(history.canUndo, false); assert.equal(history.canRedo, false); assert.equal(text, 'before');
   history.busy = true; assert.throws(() => history.clear(), /finish/);
+});
+
+test('empty base searches the entire vault and optional subfolders save directly in the base', () => {
+  for (const base of ['', 'Proyectos/Curso']) {
+    const settings = { ...defaultSettings(), plannerFolder: base, entryFolder: '', threadFolder: '' };
+    assert.equal(creationFolder(settings, 'entry'), base);
+    assert.equal(creationFolder(settings, 'thread'), base);
+    assert.equal(pathInScope(`${base ? base + '/' : ''}Nota.md`, settings), true);
+  }
+});
+
+test('legacy scoped folders become relative without changing the old search scope or input data', () => {
+  const saved = { searchEntireVault: false, searchFolder: 'Cursos', entryFolder: 'Cursos/Entradas', threadFolder: 'Cursos/Hilos', dayWidth: 250 };
+  const copy = structuredClone(saved), loaded = loadSettings(saved);
+  assert.equal(loaded.plannerFolder, 'Cursos');
+  assert.equal(loaded.entryFolder, 'Entradas');
+  assert.equal(loaded.threadFolder, 'Hilos');
+  assert.equal(creationFolder(loaded, 'entry'), saved.entryFolder);
+  assert.equal(legacyDestinationsChanged(saved, loaded), false);
+  assert.deepEqual(saved, copy);
+  const outside = loadSettings({ ...saved, threadFolder: 'Planner/Threads' });
+  assert.equal(creationFolder(outside, 'thread'), 'Cursos/Threads');
+  assert.equal(legacyDestinationsChanged({ ...saved, threadFolder: 'Planner/Threads' }, outside), true);
+  assert.equal(pathInScope('Fuera/Nota.md', outside), false);
+});
+
+test('new-format folders are not migrated twice and absent settings use fresh defaults', () => {
+  const saved = { ...defaultSettings(), plannerFolder: 'Cursos', entryFolder: '', showAllDatedNotes: true };
+  assert.deepEqual(loadSettings(saved), saved);
+  assert.deepEqual(loadSettings({}), defaultSettings());
+  const bad = loadSettings({ searchEntireVault: false, searchFolder: '../outside', entryFolder: 'Entries' });
+  assert.throws(() => validateSettings(bad));
+});
+
+test('dated-note mode uses the selected date key, requires a valid date and excludes thread cards', () => {
+  const off = defaultSettings(), on = { ...off, showAllDatedNotes: true };
+  const note = { date: '2026-10-31', type: 'Reference' };
+  const copy = structuredClone(note);
+  assert.equal(isPlannerFrontmatter(note, off), false);
+  assert.equal(isEntryFrontmatter(note, on), true);
+  assert.equal(isEntryFrontmatter({ ...note, planner_type: 'other' }, on), true);
+  for (const date of ['2026-02-30', '2026-10-31T12:00:00', '', undefined]) assert.equal(isPlannerFrontmatter({ date }, on), false);
+  assert.equal(isEntryFrontmatter({ ...note, planner_type: 'thread' }, on), false);
+  assert.equal(isPlannerFrontmatter({ ...note, planner_type: 'thread' }, off), true);
+  assert.equal(isPlannerFrontmatter({ planner_type: 'entry' }, off), true);
+  const custom = { ...on, propertyNames: { ...on.propertyNames, date: 'scheduled' } };
+  assert.equal(isPlannerFrontmatter(note, custom), false);
+  assert.equal(isPlannerFrontmatter({ scheduled: '2026-10-31' }, custom), true);
+  assert.deepEqual(note, copy);
 });

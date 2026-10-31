@@ -1,9 +1,9 @@
-import { PluginSettingTab, Setting, TFolder, type App, type SettingDefinitionItem } from 'obsidian';
+import { PluginSettingTab, Setting, type App, type SettingDefinitionItem } from 'obsidian';
 import type JustSimplePlanner from './main';
-import { cloneSettings, cleanFolder, DEFAULT_PROPERTIES, ENTRY_PROPERTIES, type PlannerSettings, type EntryProperty } from './settings';
+import { cloneSettings, creationFolder, DEFAULT_PROPERTIES, ENTRY_PROPERTIES, type PlannerSettings, type EntryProperty } from './settings';
 
 type FieldKey = Exclude<keyof PlannerSettings, 'propertyNames'> | EntryProperty;
-type TextKey = Exclude<FieldKey, 'searchEntireVault' | 'dayWidth'>;
+type TextKey = Exclude<FieldKey, 'showAllDatedNotes' | 'dayWidth'>;
 type FieldValue = string | boolean | number;
 interface Field {
   key: FieldKey;
@@ -24,6 +24,7 @@ export class PlannerSettingsTab extends PluginSettingTab {
   private saving = 0;
   private serial = 0;
   private synchronizing = 0;
+  private destinations: Setting | null = null;
 
   constructor(app: App, private readonly plugin: JustSimplePlanner) { super(app, plugin); }
 
@@ -35,6 +36,7 @@ export class PlannerSettingsTab extends PluginSettingTab {
   // Saving one field must not remove focus or another unfinished edit.
   synchronize(): void {
     for (const field of this.fields.values()) if (!field.dirty) field.set(this.value(this.plugin.settings, field.key));
+    this.destinations?.setDesc(this.destinationDescription());
   }
 
   hide(): void {
@@ -47,10 +49,10 @@ export class PlannerSettingsTab extends PluginSettingTab {
   }
 
   private assign(settings: PlannerSettings, key: FieldKey, value: FieldValue): void {
-    if (key === 'searchEntireVault') settings.searchEntireVault = Boolean(value);
+    if (key === 'showAllDatedNotes') settings.showAllDatedNotes = Boolean(value);
     else if (key === 'dayWidth') settings.dayWidth = Number(value);
     else if (ENTRY_PROPERTIES.includes(key as EntryProperty)) settings.propertyNames[key as EntryProperty] = String(value);
-    else settings[key as 'entryFolder' | 'threadFolder' | 'searchFolder'] = String(value);
+    else settings[key as 'entryFolder' | 'threadFolder' | 'plannerFolder'] = String(value);
   }
 
   private track(key: FieldKey, setting: Setting, input: HTMLElement, get: Field['get'], set: Field['set']): Field {
@@ -89,10 +91,6 @@ export class PlannerSettingsTab extends PluginSettingTab {
         // Merge completed edits into the latest saved settings; queued changes cannot overwrite each other.
         const candidate = cloneSettings(this.plugin.settings);
         this.assign(candidate, field.key, value);
-        if (field.key === 'searchFolder' && String(value).trim()) {
-          const folder = cleanFolder(String(value));
-          if (!(this.app.vault.getAbstractFileByPath(folder) instanceof TFolder)) throw new Error('Choose an existing folder inside this vault.');
-        }
         if (this.value(this.plugin.settings, field.key) !== value) await this.plugin.applySettings(candidate);
         if (field.revision === revision) {
           field.dirty = false; field.set(this.value(this.plugin.settings, field.key));
@@ -101,7 +99,7 @@ export class PlannerSettingsTab extends PluginSettingTab {
       } catch (error) {
         if (field.revision !== revision) return;
         const message = error instanceof Error ? error.message : String(error);
-        const immediate = field.key === 'searchEntireVault' || field.key === 'dayWidth';
+        const immediate = field.key === 'showAllDatedNotes' || field.key === 'dayWidth';
         if (immediate) { field.dirty = false; field.set(this.value(this.plugin.settings, field.key)); }
         this.feedback(field, `${message} ${immediate ? 'The previous value is still active.' : 'Not saved; the previous value is still active.'}`, !immediate);
         field.feedback.toggleClass('is-error', true);
@@ -128,13 +126,20 @@ export class PlannerSettingsTab extends PluginSettingTab {
     const property = (key: EntryProperty, name: string, desc: string): SettingRow => this.text(key, name, `${desc}. Default: ${DEFAULT_PROPERTIES[key]}.`, DEFAULT_PROPERTIES[key]);
     return [
       {
-        heading: 'Search scope', rows: [
+        heading: 'Planner folders', rows: [
           { name: 'Saving settings', desc: 'Switches and dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings. Invalid changes show an error beside the field; the last valid configuration stays active.' },
-          { name: 'Which notes appear?', desc: 'Only notes marked planner_type: entry or planner_type: thread are included. Search scope controls what appears on the board; creation folders below only control where new notes are saved.' },
+          this.text('plannerFolder', 'Planner folder', 'Common base for searching and creating notes. Default: Planner. Leave empty to search the entire vault and use the vault root as the base. Subfolders are included. Missing folders are created when you save the first new note; existing notes are never moved.', 'Vault root — entire vault'),
+          this.text('entryFolder', 'New entries folder', 'Optional subfolder relative to Planner folder. Default: Entries. Leave empty to save entries directly in Planner folder, or in the vault root when both fields are empty.', 'Same as Planner folder'),
+          this.text('threadFolder', 'New threads folder', 'Optional subfolder relative to Planner folder. Default: Threads. Leave empty to save thread notes directly in Planner folder, or in the vault root when both fields are empty.', 'Same as Planner folder'),
+          { name: 'Resolved new note folders', desc: this.destinationDescription(), render: setting => { this.destinations = setting; setting.setDesc(this.destinationDescription()); } },
+        ],
+      },
+      {
+        heading: 'Note inclusion', rows: [
           {
-            name: 'Search entire vault', desc: 'On: find planner entries and threads in every folder. Off: use Search folder and its subfolders. Choose a valid Search folder before switching this off. Default: on.',
+            name: 'Show all dated notes', desc: 'On: show every note with a valid date in the configured Date property, even without planner_type: entry. Off: include only marked entries. Default: off. Thread notes remain rows, even if they have dates. The Planner folder scope applies in both modes.',
             render: setting => { setting.addToggle(toggle => {
-              const field = this.track('searchEntireVault', setting, toggle.toggleEl.querySelector('input') ?? toggle.toggleEl, () => toggle.getValue(), value => {
+              const field = this.track('showAllDatedNotes', setting, toggle.toggleEl.querySelector('input') ?? toggle.toggleEl, () => toggle.getValue(), value => {
                 toggle.setValue(Boolean(value));
                 const checkbox = toggle.toggleEl.querySelector<HTMLInputElement>('input');
                 if (checkbox) checkbox.checked = Boolean(value);
@@ -142,14 +147,7 @@ export class PlannerSettingsTab extends PluginSettingTab {
               toggle.onChange(value => { if (!this.synchronizing) { this.edit(field); this.save(field, value); } });
             }); },
           },
-          this.text('searchFolder', 'Search folder', 'Used only when Search entire vault is off. Choose an existing vault-relative folder, such as Projects. Its subfolders are included for both entry and thread notes. Linked notes outside it are not added to the board.', 'Projects'),
-        ],
-      },
-      {
-        heading: 'New note locations', rows: [
-          { name: 'Saving and searching are independent', desc: 'These folders do not filter existing notes or move any files. If a creation folder is outside your search scope, new notes saved there will be hidden until you change the scope.' },
-          this.text('entryFolder', 'New entries folder', 'Save newly created entry notes here. Default: Planner/Entries. Leave empty to save in the vault root.', 'Vault root'),
-          this.text('threadFolder', 'New threads folder', 'Save newly created thread notes here. Default: Planner/Threads. Leave empty to save in the vault root.', 'Vault root'),
+          { name: 'Existing dated notes stay ordinary notes', desc: 'Displaying a note never adds planner_type or rewrites its properties. Notes without a thread appear in Unassigned; missing titles use the filename. Editing, completing tasks, connecting or dragging a note changes its original Markdown, using the configured property names. A date can be a creation date rather than a planned date; choose the property you want below.' },
         ],
       },
       {
@@ -159,7 +157,7 @@ export class PlannerSettingsTab extends PluginSettingTab {
           property('title', 'Title property', 'Text shown on the card. When the property value is empty or missing, the filename is used'),
           property('thread', 'Thread property', 'A wikilink to a thread note, or a plain-text group name'),
           property('next', 'Connections property', 'A YAML list of wikilinks to following entries. This controls arrows and connected flows'),
-          { name: 'Changing the mapping does not migrate notes', desc: 'Existing properties and files are not renamed or rewritten. Notes using a different date key will be excluded and counted as invalid until their properties match, or you restore the previous mapping. Session undo/redo is cleared when scope or mapping changes. Thread-note properties status, color and order keep their names.' },
+          { name: 'Changing the mapping does not migrate notes', desc: 'Existing properties and files are not renamed or rewritten. Marked entries without a valid mapped date are counted as invalid. Other notes appear only when their mapped date is valid and dated-note mode is on. Session undo/redo is cleared when the base, inclusion mode or mapping changes. Thread-note properties status, color and order keep their names.' },
         ],
       },
       {
@@ -172,6 +170,11 @@ export class PlannerSettingsTab extends PluginSettingTab {
         ],
       },
     ];
+  }
+
+  private destinationDescription(): string {
+    try { return `Entries: ${creationFolder(this.plugin.settings, 'entry') || 'Vault root'}. Threads: ${creationFolder(this.plugin.settings, 'thread') || 'Vault root'}.`; }
+    catch { return 'Correct the folder paths to see the destinations. Existing files are not moved.'; }
   }
 
   // Obsidian before 1.13 uses the same controls, validation and autosave handlers.

@@ -1,8 +1,8 @@
 import { Plugin, Notice, TFile, TFolder, normalizePath, getFrontMatterInfo, parseYaml, stringifyYaml, type TAbstractFile } from 'obsidian';
-import { History, today, validDay, wikiTarget, toggleTask, type Entry, type Thread, type Change } from './model';
+import { History, today, validDay, wikiTarget, toggleTask, isEntryFrontmatter, isPlannerFrontmatter, type Entry, type Thread, type Change } from './model';
 import { PlannerView, VIEW_TYPE, PLANNER_ICON } from './view';
 import { EntryModal, ThreadModal } from './modals';
-import { defaultSettings, loadSettings, validateSettings, cleanFolder, pathInScope, folderIntersectsScope, readEntryProperties, mapEntryFields, changesIndex, type PlannerSettings } from './settings';
+import { defaultSettings, loadSettings, validateSettings, cleanFolder, pathInScope, folderIntersectsScope, readEntryProperties, mapEntryFields, changesIndex, creationFolder, legacyDestinationsChanged, type PlannerSettings } from './settings';
 import { PlannerSettingsTab } from './settings-tab';
 export type { PlannerSettings } from './settings';
 
@@ -34,9 +34,11 @@ export default class JustSimplePlanner extends Plugin {
   private settingsTab: PlannerSettingsTab | null = null;
 
   async onload(): Promise<void> {
-    this.settings = loadSettings(await this.loadData());
+    const saved: unknown = await this.loadData();
+    this.settings = loadSettings(saved);
     try { this.settings = validateSettings(this.settings); }
     catch (error) { new Notice(`Review planner settings: ${error instanceof Error ? error.message : String(error)}`, 9000); }
+    if (legacyDestinationsChanged(saved, this.settings)) new Notice('New note folders are now relative to the planner folder. Review the resolved destinations in settings. Existing notes were not moved.', 12000);
     this.history = new History({ write: async (path, expected, replacement) => {
       this.assertCanWrite();
       const file = this.file(path);
@@ -89,14 +91,14 @@ export default class JustSimplePlanner extends Plugin {
 
   configurationIssue(): string | null {
     try { validateSettings(this.settings); } catch (error) { return error instanceof Error ? error.message : String(error); }
-    if (!this.settings.searchEntireVault && !(this.app.vault.getAbstractFileByPath(this.settings.searchFolder) instanceof TFolder)) return 'Search folder does not exist. Open planner settings to select an existing folder or enable Search entire vault.';
+    if (this.folderIsFile(this.settings.plannerFolder)) return 'Planner folder must be a folder path inside this vault.';
     return null;
   }
 
   async applySettings(candidate: PlannerSettings): Promise<void> {
     if (this.applyingSettings || this.history.busy) throw new Error('Wait for the current planner change to finish before applying settings.');
     const next = validateSettings(candidate);
-    if (!next.searchEntireVault && !(this.app.vault.getAbstractFileByPath(next.searchFolder) instanceof TFolder)) throw new Error('Search folder must be an existing folder inside this vault.');
+    for (const path of [next.plannerFolder, creationFolder(next, 'entry'), creationFolder(next, 'thread')]) if (this.folderIsFile(path)) throw new Error('A folder path points to a file. Choose a folder inside this vault.');
     const rebuild = changesIndex(this.settings, next);
     this.applyingSettings = true;
     try {
@@ -118,14 +120,18 @@ export default class JustSimplePlanner extends Plugin {
     if (issue) throw new Error(issue);
   }
 
+  private folderIsFile(path: string): boolean {
+    const parts = path.split('/').filter(Boolean);
+    return parts.some((_, index) => this.app.vault.getAbstractFileByPath(parts.slice(0, index + 1).join('/')) instanceof TFile);
+  }
+
   private knownPaths(): Set<string> { return new Set([...this.entries.keys(), ...this.threads.keys(), ...this.invalid]); }
 
   private isKnown(path: string): boolean { return this.entries.has(path) || this.threads.has(path) || this.invalid.has(path); }
 
   private hasPlannerMetadata(file: TFile, oldPath?: string): boolean {
     const cache = this.app.metadataCache.getFileCache(file) ?? (oldPath ? this.app.metadataCache.getCache(oldPath) : null);
-    const type: unknown = cache?.frontmatter?.planner_type;
-    return file.extension === 'md' && (type === 'entry' || type === 'thread');
+    return file.extension === 'md' && isPlannerFrontmatter(cache?.frontmatter, this.settings);
   }
 
   private forget(path: string): void {
@@ -162,8 +168,8 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   private discoverPlannerPaths(): Set<string> {
-    if (this.settings.searchEntireVault) return new Set(this.app.vault.getMarkdownFiles().filter(file => this.isKnown(file.path) || this.hasPlannerMetadata(file)).map(file => file.path));
-    const folder = this.app.vault.getAbstractFileByPath(this.settings.searchFolder);
+    if (!this.settings.plannerFolder) return new Set(this.app.vault.getMarkdownFiles().filter(file => this.isKnown(file.path) || this.hasPlannerMetadata(file)).map(file => file.path));
+    const folder = this.app.vault.getAbstractFileByPath(this.settings.plannerFolder);
     return new Set(folder instanceof TFolder ? this.plannerFilesInFolder(folder).map(file => file.path) : []);
   }
 
@@ -186,7 +192,7 @@ export default class JustSimplePlanner extends Plugin {
       const { frontmatter: fm, body } = unpack(text);
       if (fm.planner_type === 'thread') {
         this.threads.set(file.path, { path: file.path, title: file.basename, status: fm.status === 'parked' || fm.status === 'closed' ? fm.status : 'active', color: typeof fm.color === 'string' ? fm.color : 'blue', order: typeof fm.order === 'number' ? fm.order : 0 });
-      } else if (fm.planner_type === 'entry') {
+      } else if (isEntryFrontmatter(fm, this.settings)) {
         const props = readEntryProperties(fm, this.settings.propertyNames);
         if (!validDay(props.date)) { this.invalid.add(file.path); return; }
         const thread = this.resolveLink(props.thread, file.path) ?? (typeof props.thread === 'string' && !wikiTarget(props.thread) ? `text:${props.thread}` : 'unassigned');
@@ -271,7 +277,9 @@ export default class JustSimplePlanner extends Plugin {
       if (patch.expectedText !== undefined && before !== patch.expectedText) throw new Error('The note was edited elsewhere. Reopen it before saving.');
       const document = unpack(before);
       if (patch.expectedBody !== undefined && document.body !== patch.expectedBody) throw new Error('The note was edited elsewhere. Reopen it before saving.');
-      const entry = document.frontmatter.planner_type === 'entry';
+      const entry = document.frontmatter.planner_type !== 'thread';
+      const editsEntry = patch.body !== undefined || ['date', 'title', 'thread', 'next'].some(key => key in (patch.fields ?? {}));
+      if (entry && editsEntry && !isEntryFrontmatter(document.frontmatter, this.settings)) throw new Error('This note is no longer included in the planner. Review the date and Show all dated notes settings.');
       if (patch.expectedDate !== undefined && document.frontmatter[entry ? this.settings.propertyNames.date : 'date'] !== patch.expectedDate) throw new Error('A date changed while dragging. Try again.');
       const fields = entry ? mapEntryFields(patch.fields ?? {}, this.settings.propertyNames) : patch.fields ?? {};
       for (const [key, value] of Object.entries(fields)) {
@@ -295,7 +303,7 @@ export default class JustSimplePlanner extends Plugin {
     const before = await this.app.vault.read(this.file(source));
     if (generation !== this.indexGeneration) throw new Error('Scope or property mapping changed while connecting. Try again.');
     const document = unpack(before);
-    if (document.frontmatter.planner_type !== 'entry') throw new Error('The source note is no longer a planner entry.');
+    if (!isEntryFrontmatter(document.frontmatter, this.settings)) throw new Error('The source note is no longer included in the planner.');
     const value = document.frontmatter[this.settings.propertyNames.next];
     const links: string[] = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
     const exists = links.some(link => this.resolveLink(link, source) === target);
@@ -329,7 +337,7 @@ export default class JustSimplePlanner extends Plugin {
     this.assertCanWrite();
     const settings = this.settings;
     if (!validDay(date)) throw new Error('Choose a valid date.');
-    const path = await this.uniquePath(this.settings.entryFolder, `${date} - ${title}`);
+    const path = await this.uniquePath(creationFolder(settings, 'entry'), `${date} - ${title}`);
     this.assertCanWrite();
     if (settings !== this.settings) throw new Error('Settings changed while creating the entry. Try again.');
     const fm: Record<string, unknown> = { planner_type: 'entry', ...mapEntryFields({ title, date, thread: thread && thread !== 'unassigned' ? thread.startsWith('text:') ? thread.slice(5) : this.link(thread) : '', next: [] }, settings.propertyNames) };
@@ -340,18 +348,18 @@ export default class JustSimplePlanner extends Plugin {
       try { await this.writeConnection(previous, path); }
       catch (error) { new Notice(`Entry saved, but its connection could not be added: ${error instanceof Error ? error.message : String(error)}`, 9000); }
     }
-    if (!this.inScope(path)) new Notice('Entry saved outside the current search folder. Change the search scope to see it on the board.', 9000);
+    if (!this.inScope(path)) new Notice('Entry saved outside the current planner folder. Update the folder in settings to see it on the board.', 9000);
   }
 
   async createThread(title: string, color: string, status: string): Promise<void> {
     this.assertCanWrite();
     const settings = this.settings;
-    const path = await this.uniquePath(this.settings.threadFolder, title);
+    const path = await this.uniquePath(creationFolder(settings, 'thread'), title);
     this.assertCanWrite();
     if (settings !== this.settings) throw new Error('Settings changed while creating the thread. Try again.');
     const text = pack({ planner_type: 'thread', status, color, order: this.threads.size }, `# ${title}\n\n`);
     const file = await this.app.vault.create(path, text);
     this.indexText(file, text);
-    if (!this.inScope(path)) new Notice('Thread saved outside the current search folder. Change the search scope to see it on the board.', 9000);
+    if (!this.inScope(path)) new Notice('Thread saved outside the current planner folder. Update the folder in settings to see it on the board.', 9000);
   }
 }

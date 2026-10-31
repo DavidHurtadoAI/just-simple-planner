@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.2.2-4c819a)
+![Version](https://img.shields.io/badge/version-0.3.0-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -124,24 +124,29 @@ gh attestation verify styles.css --repo DavidHurtadoAI/just-simple-planner
 
 ## Settings
 
-Settings use English labels and defaults and save automatically. **Switches and dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings.** Each field shows save feedback or a validation error. Invalid changes leave the last valid configuration active; a switch or dropdown that cannot be saved returns to its active value. Existing saved creation folders and zoom are preserved on update.
+Settings use English labels and defaults and save automatically. **Switches and dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings.** Each field shows save feedback or a validation error. Invalid changes leave the last valid configuration active; a switch or dropdown that cannot be saved returns to its active value. Folder settings from older versions are adapted as described below; zoom and property mapping are retained.
 
-### Search scope: what appears on the board
-
-**Search entire vault** is on by default. **Search folder** stays visible so you can enter and save an existing vault-relative folder before switching whole-vault search off. The folder is used only when the switch is off, and its subfolders are included. This applies to both entries and thread notes; links to notes outside that scope do not add those notes to the board. An empty or invalid folder prevents the switch from turning off, with an inline explanation.
-
-Only notes marked **`planner_type: entry`** or **`planner_type: thread`** are included. Enabling whole-vault search never turns every note into a card.
-
-### New note locations: where files are saved
+### Planner folders: one common base
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| **New entries folder** | `Planner/Entries` | Folder for new entry notes. Empty means the vault root. |
-| **New threads folder** | `Planner/Threads` | Folder for new thread notes. Empty means the vault root. |
+| **Planner folder** | `Planner` | Common base for searching and creating notes. Empty means the entire vault, with the vault root as the creation base. Subfolders are included. |
+| **New entries folder** | `Entries` | Optional subfolder relative to Planner folder. Empty saves directly in the base. |
+| **New threads folder** | `Threads` | Optional subfolder relative to Planner folder. Empty saves directly in the base. |
 
-These paths do not filter existing notes, decide thread membership, or move files. You can store notes anywhere while keeping their thread through a property. If you create a note outside the selected search folder, it is saved and a notice explains why it is hidden. A connected continuation still saves its link. Change the search scope to display it.
+For example, with Planner folder `Cursos/IA`, entries go to `Cursos/IA/Entries` and threads to `Cursos/IA/Threads`. Leave both child fields empty to keep all new notes directly in `Cursos/IA`. Leave all three fields empty to search the entire vault and create notes in its root. The settings show both resolved destinations.
 
-![Whole-vault search, an always-visible Search folder and independent creation folders](docs/images/settings-scope.png)
+Missing folders are created when you save the first new note. Absolute paths, parent traversal and paths through an existing file are rejected. Changing settings never moves existing files. Thread membership still comes from a property; folders determine scope and storage.
+
+### Show all dated notes
+
+**Show all dated notes** is off by default. With it off, cards require `planner_type: entry` and a valid mapped date. Turn it on to include **any note with a valid calendar date in the configured Date property**, even if it has no planner type or a different type. The Planner folder scope applies in both modes.
+
+Thread notes marked `planner_type: thread` remain rows, even when they have dates. Missing thread values appear under **Unassigned**, and missing titles fall back to the filename. Ordinary notes with invalid dates or a different date key are excluded.
+
+**Displaying a note does not modify it or add planner_type.** Editing, completing tasks, connecting or dragging a card writes to that original Markdown note using the mapped property names. A date can represent creation or publication rather than a plan; choose the property you want to visualize.
+
+![The common Planner folder, optional relative subfolders and Show all dated notes](docs/images/settings-scope.png)
 
 ### Property mapping: use your existing frontmatter names
 
@@ -154,15 +159,19 @@ These paths do not filter existing notes, decide thread membership, or move file
 
 For example, select `scheduled`, `headline`, `project` and `following` if those are the keys you already use. The mapping applies to reading, creating, editing, moving and connecting entries, including task edits. Keys must be non-empty and different; `planner_type` stays fixed and is reserved. Thread notes keep `status`, `color` and `order`.
 
-**Changing the mapping does not migrate notes.** Existing properties are not renamed or rewritten. A note without a valid date under the selected key is counted as invalid and excluded from the board. Missing title values use the filename; missing thread values are unassigned; missing connections produce no arrows. Restore the previous mapping to read the previous schema again, or deliberately update your notes yourself. Scope and mapping changes clear session undo/redo so old actions cannot modify notes under a different configuration.
+**Changing the mapping does not migrate notes.** Existing properties are not renamed or rewritten. Marked entries without a valid mapped date are counted as invalid and excluded. Ordinary notes qualify only while their mapped date is valid and dated-note mode is enabled. Missing title values use the filename; missing thread values are unassigned; missing connections produce no arrows. Restore the previous mapping to read the previous schema again, or deliberately update your notes yourself. Changes to Planner folder, dated-note inclusion or property mapping clear session undo/redo so old actions cannot modify notes under a different configuration.
 
-**Day width** chooses the default zoom. Changes to creation folders or zoom keep the current note schema and undo history.
+**Day width** chooses the default zoom. Changes to creation subfolders or zoom keep the current note schema and undo history.
 
 ![Configurable property names and English defaults, saved automatically when editing ends](docs/images/settings-properties.png)
 
+### Updating older folder settings
+
+Older whole-vault searches become an empty Planner folder, preserving their existing creation destinations relative to the vault root. Older restricted searches keep their search folder as the common base. Creation folders already inside it become relative paths. An old creation folder outside that base is rebased below it using its final folder name; a notice asks you to review the resolved destinations. Existing notes are never moved or rewritten by this adaptation.
+
 ## Try the examples
 
-Copy the contents of [`examples/`](examples) into a folder in your vault, preserving the `Entradas` and `Hilos` subfolders. Open the planner and navigate to **30 October 2026**.
+Copy the contents of [`examples/`](examples) into your selected Planner folder, preserving the `Entradas` and `Hilos` subfolders. If you put them elsewhere, select that containing folder or leave Planner folder empty. Open the planner and navigate to **30 October 2026**.
 
 You get **20 entries, four threads, 18 connections and 12 pending tasks** covering a course, publications, plugin development and personal errands. Their wikilinks use note names, so the containing folder can have any name. All sample content is fictional.
 
@@ -211,11 +220,11 @@ Moving an entry to another folder does not change its thread. Use Obsidian's nor
 
 The plugin has **zero runtime package dependencies** and makes no network requests of its own. It has no account, telemetry, analytics or remote database. Bodies, dates, thread membership and connections live in Markdown. Settings hold search scope, property names, creation folders and zoom; Obsidian's workspace holds view layout.
 
-**Vault discovery:** with **Search entire vault** on, initial discovery lists Markdown paths and checks cached frontmatter across the vault. With it off, discovery walks only the selected folder and its subfolders. Bodies are read only for marked planner notes in the active scope. Discovery runs on load and when scope or property mapping changes; later refreshes revisit known planner paths. Metadata and rename events discover newly included notes and remove notes that opt out or leave the scope. Unrelated notes are not parsed or opened on edit/rename. The community scanner can still report **Vault Enumeration** because whole-vault discovery remains an optional capability. Nothing is uploaded or shared.
+**Vault discovery:** an empty **Planner folder** lists Markdown paths and checks cached frontmatter across the vault. A named Planner folder walks only that subtree. Bodies are read for marked planner notes and, when Show all dated notes is enabled, qualifying dated notes in scope. Discovery runs on load and when the base, inclusion mode or property mapping changes; later refreshes revisit known paths. Metadata and rename events discover newly included notes and remove notes that no longer qualify or leave the scope. Unrelated notes are not parsed or opened on edit/rename. The community scanner can still report **Vault Enumeration** because whole-vault discovery remains available. Nothing is uploaded or shared.
 
 Writes compare the note with its snapshot before saving. A concurrent edit causes a conflict instead of being silently overwritten. Multi-note operations try to roll back earlier writes if a later write fails; a rollback conflict is reported for review. This is optimistic conflict protection, not a filesystem-wide transaction.
 
-Undo history is in memory, capped at 40 operations and cleared on plugin reload or when search scope or property mapping changes. It covers edits, moves, connections and task completion. **Creating a note is not undone by deleting it**; the plugin never deletes your notes. YAML values and Markdown content are retained, although YAML formatting and comments may be normalized when properties are edited.
+Undo history is in memory, capped at 40 operations and cleared on plugin reload or when Planner folder, dated-note inclusion or property mapping changes. It covers edits, moves, connections and task completion. **Creating a note is not undone by deleting it**; the plugin never deletes your notes. YAML values and Markdown content are retained, although YAML formatting and comments may be normalized when properties are edited.
 
 ## The story and the credit
 

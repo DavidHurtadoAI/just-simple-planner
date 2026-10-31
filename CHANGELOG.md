@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-10-31
+
+- Replace Search folder and Search entire vault with a common Planner folder. Empty searches the entire vault; optional entry/thread subfolders are relative to this base and empty saves directly in it.
+- Show resolved creation destinations, create missing folders on first note creation, and adapt older settings without moving notes.
+- Add Show all dated notes, off by default, to include ordinary notes with a valid configured date. Thread notes remain rows.
+- Support mapped edits, drag rescheduling, tasks, connections and exact undo on ordinary dated notes without adding planner_type.
+
 ## 0.2.2 — 2026-10-31
 
 - Remove Apply settings. Save switches and dropdowns immediately, and text fields on blur, Enter or closing settings.
