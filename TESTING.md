@@ -1,5 +1,19 @@
 # Validation
 
+## Release build — 0.2.1
+
+On 2026-10-31, the final 0.2.1 build passed `npm run check`, including all twenty-four tests, official Obsidian lint with zero warnings, strict TypeScript and package validation. Central installation and verification reported 0.2.1 OK. After reloading inside Obsidian, the installed plugin showed the new pan hint and adjacent New thread / New entry buttons, with twenty entries, four threads, no invalid notes and no captured errors. The saved `data.json` remained byte-for-byte unchanged through installation and reload.
+
+## Adjacent creation buttons — 0.2.1
+
+On 2026-10-31, `npm run check` and central installation/verification passed. Inside Obsidian, at viewport widths of 1200 and 640 pixels, New thread immediately precedes New entry in one group, on the same row with a 10-pixel gap. Both buttons opened their respective dialogs and were cancelled without creating notes. Native screenshots were inspected; the demo retains twenty entries and four threads, with no captured Obsidian errors.
+
+## Ctrl/Cmd + left-drag pan — 0.2.1
+
+On 2026-10-31, the build passed `npm run check` (official lint, strict TypeScript, twenty-four tests and package audit) and central installation/verification in `@Nexus-dev`. `scripts/qa-modifier-pan.mjs` passed thirteen checks using trusted Chromium mouse input: Ctrl/Cmd clicks select, small jitter stays a click, both modifiers pan from a card without rescheduling or changing selection, the next click remains usable, releasing the modifier mid-drag finishes normally, empty day space supports pan, card buttons retain their action, focus loss cancels a pending pan, and source Markdown is unchanged. Cmd is exercised as the Meta modifier in desktop Windows Obsidian; a physical Mac has not been tested.
+
+All seven existing pan checks and fifteen connection checks also passed, including middle-drag, cancellation, Shift+wheel, ordinary card rescheduling with undo, direct connection dragging and disconnect controls. The new script restores the original view and selection, creates no notes and checks for captured Obsidian errors.
+
 ## Search scope and property mapping — 0.2.0
 
 On 2026-10-31, `npm run check` passed the official Obsidian lint rules with zero warnings, strict TypeScript, all twenty-four tests, the build and package audit. The central installer installed and verified 0.2.0 in the canonical `@Nexus-dev` vault.
@@ -40,7 +54,7 @@ Result: **14 unit tests and 12 in-app integration checks passed**. The central i
 
 `npm run check` runs the official Obsidian ESLint rules with zero warnings, strict TypeScript checking, twenty-four Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior. Settings tests cover isolated English defaults, legacy loading, folder validation and scope boundaries, independent creation folders, reserved and duplicate keys, exact mapped reads, simultaneous mapped writes, index-reset conditions and history clearing.
 
-The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 56.4 KiB, with Obsidian as its only external runtime module.
+The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 57.3 KiB, with Obsidian as its only external runtime module.
 
 ## Direct connection widgets — 2026-10-30
 

@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.2.0-4c819a)
+![Version](https://img.shields.io/badge/version-0.2.1-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -90,6 +90,7 @@ The interface and property names are English. Notes, filenames and thread names 
 | --- | --- |
 | Left-drag a card | Reschedule it; drag a single card into another thread to change its membership. |
 | Middle-button drag | Pan: the content follows your hand, matching Visual Card Writer. |
+| Ctrl/Cmd + left-button drag | Pan the board from empty space or a card. A small movement threshold keeps Ctrl/Cmd-click available for selection. Buttons and links keep their normal actions. |
 | Mouse wheel / Shift + wheel | Scroll vertically / horizontally. |
 | Ctrl/Cmd-click | Add or remove a card from the selection. |
 | Shift-drag a card | Include its connected successors in the move. |

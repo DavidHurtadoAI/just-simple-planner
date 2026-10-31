@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 — 2026-10-31
+
+- Keep New thread immediately before New entry in a single toolbar group, including when the toolbar wraps.
+- Add Ctrl/Cmd + left-button drag to pan the board, preserving Ctrl/Cmd-click selection, ordinary card dragging and interactive controls.
+
 ## 0.2.0 — 2026-10-31
 
 - Add Search entire vault, enabled by default, and an optional Search folder with recursive folder-only discovery.
