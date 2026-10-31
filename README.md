@@ -7,12 +7,12 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.1.3-4c819a)
+![Version](https://img.shields.io/badge/version-0.2.0-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
 
-[Visual tour](#visual-tour) · [Install](#install) · [Try the examples](#try-the-examples) · [Markdown format](#markdown-format) · [The story and the credit](#the-story-and-the-credit)
+[Visual tour](#visual-tour) · [Install](#install) · [Settings](#settings) · [Try the examples](#try-the-examples) · [Markdown format](#markdown-format) · [The story and the credit](#the-story-and-the-credit)
 
 </div>
 
@@ -121,7 +121,43 @@ gh attestation verify manifest.json --repo DavidHurtadoAI/just-simple-planner
 gh attestation verify styles.css --repo DavidHurtadoAI/just-simple-planner
 ```
 
-In Settings, **New entries folder** and **New threads folder** choose where new files are created. New installations default to **`Planner/Entries`** and **`Planner/Threads`**; updates preserve your saved folder settings. They do not reorganize existing files or decide which thread a card belongs to. **Day width** selects the default zoom.
+## Settings
+
+Settings use English labels and defaults. Edit the fields, then select **Apply settings** to validate and save them together. Existing saved creation folders and zoom are preserved on update; the default property names and whole-vault search keep existing planner notes compatible.
+
+### Search scope: what appears on the board
+
+**Search entire vault** is on by default. Turn it off to reveal **Search folder**, where you must enter an existing vault-relative folder. Its subfolders are included. This applies to both entries and thread notes; links to notes outside that scope do not add those notes to the board.
+
+Only notes marked **`planner_type: entry`** or **`planner_type: thread`** are included. Enabling whole-vault search never turns every note into a card.
+
+### New note locations: where files are saved
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| **New entries folder** | `Planner/Entries` | Folder for new entry notes. Empty means the vault root. |
+| **New threads folder** | `Planner/Threads` | Folder for new thread notes. Empty means the vault root. |
+
+These paths do not filter existing notes, decide thread membership, or move files. You can store notes anywhere while keeping their thread through a property. If you create a note outside the selected search folder, it is saved and a notice explains why it is hidden. A connected continuation still saves its link. Change the search scope to display it.
+
+![Search scope and independent creation folders, with folder-only search shown as an example](docs/images/settings-scope.png)
+
+### Property mapping: use your existing frontmatter names
+
+| Setting | Default key | Value |
+| --- | --- | --- |
+| **Date property** | `date` | Calendar date in `YYYY-MM-DD` format. Required for a card to appear. |
+| **Title property** | `title` | Card title. An empty or missing value uses the filename. |
+| **Thread property** | `thread` | A wikilink to a thread note, or a plain-text group name. |
+| **Connections property** | `next` | A YAML list of wikilinks to following entries. |
+
+For example, select `scheduled`, `headline`, `project` and `following` if those are the keys you already use. The mapping applies to reading, creating, editing, moving and connecting entries, including task edits. Keys must be non-empty and different; `planner_type` stays fixed and is reserved. Thread notes keep `status`, `color` and `order`.
+
+**Changing the mapping does not migrate notes.** Existing properties are not renamed or rewritten. A note without a valid date under the selected key is counted as invalid and excluded from the board. Missing title values use the filename; missing thread values are unassigned; missing connections produce no arrows. Restore the previous mapping to read the previous schema again, or deliberately update your notes yourself. Scope and mapping changes clear session undo/redo so old actions cannot modify notes under a different configuration.
+
+**Day width** chooses the default zoom. Changes to creation folders or zoom keep the current note schema and undo history.
+
+![Configurable property names, English defaults and the explicit Apply settings button](docs/images/settings-properties.png)
 
 ## Try the examples
 
@@ -172,13 +208,13 @@ Moving an entry to another folder does not change its thread. Use Obsidian's nor
 
 ## Local data and careful writes
 
-The plugin has **zero runtime package dependencies** and makes no network requests of its own. It has no account, telemetry, analytics or remote database. Bodies, dates, thread membership and connections live in Markdown. Settings hold creation folders and zoom; Obsidian's workspace holds view layout.
+The plugin has **zero runtime package dependencies** and makes no network requests of its own. It has no account, telemetry, analytics or remote database. Bodies, dates, thread membership and connections live in Markdown. Settings hold search scope, property names, creation folders and zoom; Obsidian's workspace holds view layout.
 
-**Vault discovery:** once per plugin load, the planner lists Markdown file paths and checks Obsidian's cached frontmatter across the vault to discover notes with `planner_type: entry` or `planner_type: thread`. This keeps folder location independent of the board. It reads note bodies only for those planner notes. Later refreshes revisit known planner paths; metadata events discover newly marked notes and remove notes that opt out. Unrelated notes are not parsed or opened by the planner when edited or renamed. The community scanner can therefore report **Vault Enumeration**: initial path enumeration remains necessary for automatic discovery across folders. Nothing is uploaded or shared.
+**Vault discovery:** with **Search entire vault** on, initial discovery lists Markdown paths and checks cached frontmatter across the vault. With it off, discovery walks only the selected folder and its subfolders. Bodies are read only for marked planner notes in the active scope. Discovery runs on load and when scope or property mapping changes; later refreshes revisit known planner paths. Metadata and rename events discover newly included notes and remove notes that opt out or leave the scope. Unrelated notes are not parsed or opened on edit/rename. The community scanner can still report **Vault Enumeration** because whole-vault discovery remains an optional capability. Nothing is uploaded or shared.
 
 Writes compare the note with its snapshot before saving. A concurrent edit causes a conflict instead of being silently overwritten. Multi-note operations try to roll back earlier writes if a later write fails; a rollback conflict is reported for review. This is optimistic conflict protection, not a filesystem-wide transaction.
 
-Undo history is in memory, capped at 40 operations and cleared on plugin reload. It covers edits, moves, connections and task completion. **Creating a note is not undone by deleting it**; the plugin never deletes your notes. YAML values and Markdown content are retained, although YAML formatting and comments may be normalized when properties are edited.
+Undo history is in memory, capped at 40 operations and cleared on plugin reload or when search scope or property mapping changes. It covers edits, moves, connections and task completion. **Creating a note is not undone by deleting it**; the plugin never deletes your notes. YAML values and Markdown content are retained, although YAML formatting and comments may be normalized when properties are edited.
 
 ## The story and the credit
 

@@ -146,6 +146,10 @@ export class History {
   constructor(store: TextStore) { this.store = store; }
   get canUndo(): boolean { return this.undoStack.length > 0; }
   get canRedo(): boolean { return this.redoStack.length > 0; }
+  clear(): void {
+    if (this.busy) throw new Error('Wait for the current planner change to finish before changing settings.');
+    this.undoStack = []; this.redoStack = [];
+  }
   async commit(changes: Change[]): Promise<void> {
     const actual = changes.filter(change => change.before !== change.after);
     if (!actual.length) return;

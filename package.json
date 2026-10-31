@@ -1,6 +1,6 @@
 {
   "name": "just-simple-planner",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "private": true,
   "description": "A local, note-based visual planner for Obsidian.",
   "author": "David Hurtado",
@@ -20,7 +20,7 @@
   "scripts": {
     "build": "esbuild main.ts --bundle --platform=browser --format=cjs --target=es2020 --external:obsidian --minify --outfile=main.js",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint main.ts model.ts modals.ts view.ts --max-warnings 0",
+    "lint": "eslint main.ts model.ts modals.ts view.ts settings.ts settings-tab.ts --max-warnings 0",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run build && node scripts/check-package.mjs",
     "demo": "node scripts/create-demo.mjs"

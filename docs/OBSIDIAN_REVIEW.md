@@ -5,7 +5,7 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 ## Community recommendations — 0.1.2
 
 - Release files are built and attested by [a GitHub-hosted release workflow](../.github/workflows/release.yml), then verified before those same files are published. Actions are pinned by SHA and signing/publishing permissions are job-scoped. See GitHub's [provenance documentation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
-- Initial **Vault Enumeration** is intentional: discovering opted-in notes anywhere requires checking Markdown paths and cached frontmatter across the vault. It happens once per load. Body reads and later refreshes are limited to planner notes; unrelated edit/rename events are ignored. The README discloses this capability. Replacing the API name would hide the scanner finding without removing the underlying capability, so the initial enumeration remains explicit.
+- **Vault Enumeration** is an explicit optional capability. From 0.2.0, Search entire vault is on by default; turning it off limits discovery to a selected folder and its subfolders without enumerating the whole vault. Discovery runs on load and when search scope or property mapping changes. Body reads are limited to marked planner notes in the active scope. Later refreshes revisit known paths, while metadata and rename events discover notes entering the scope. The README discloses both modes.
 - The container uses a scoped selector instead of `!important`; the package audit rejects that CSS override.
 
 ## Code and lifecycle
@@ -16,6 +16,7 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 - App events and persistent DOM listeners use registration helpers. Markdown previews have a render-scoped component; observers and animation frames are cleaned up. Plugin unload does not detach workspace leaves.
 - UI uses sentence case, theme variables and namespaced CSS. Inline values describe computed timeline geometry or user-selected colors. Commands have stable IDs and no default global hotkeys.
 - Settings are searchable through definitions on Obsidian 1.13+, with an imperative fallback for older supported versions. Creation paths are normalized and remain inside the vault.
+- From 0.2.0, search scope, creation folders and entry-property mapping are explained separately in English. Apply settings validates the entire draft before saving: scoped search requires an existing folder; the four keys must be distinct and cannot use the fixed marker or prototype-related reserved names. Mapped keys are used consistently for reading and writing. Configuration changes do not migrate notes; scope/schema changes clear in-memory undo/redo and reject stale in-flight reads. Saved legacy folders and zoom are preserved.
 
 ## Privacy, licensing and packaging
 

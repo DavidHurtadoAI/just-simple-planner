@@ -1,10 +1,10 @@
-import { Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath, getFrontMatterInfo, parseYaml, stringifyYaml, type App, type SettingDefinitionItem, type TAbstractFile } from 'obsidian';
+import { Plugin, Notice, TFile, TFolder, normalizePath, getFrontMatterInfo, parseYaml, stringifyYaml, type TAbstractFile } from 'obsidian';
 import { History, today, validDay, wikiTarget, toggleTask, type Entry, type Thread, type Change } from './model';
 import { PlannerView, VIEW_TYPE, PLANNER_ICON } from './view';
 import { EntryModal, ThreadModal } from './modals';
-
-export interface PlannerSettings { entryFolder: string; threadFolder: string; dayWidth: number }
-const DEFAULTS: PlannerSettings = { entryFolder: 'Planner/Entries', threadFolder: 'Planner/Threads', dayWidth: 190 };
+import { defaultSettings, loadSettings, validateSettings, cleanFolder, pathInScope, folderIntersectsScope, readEntryProperties, mapEntryFields, changesIndex, type PlannerSettings } from './settings';
+import { PlannerSettingsTab } from './settings-tab';
+export type { PlannerSettings } from './settings';
 
 export function unpack(text: string): { frontmatter: Record<string, unknown>; body: string } {
   const info = getFrontMatterInfo(text);
@@ -18,7 +18,7 @@ export function pack(frontmatter: Record<string, unknown>, body: string): string
 }
 
 export default class JustSimplePlanner extends Plugin {
-  settings: PlannerSettings = { ...DEFAULTS };
+  settings: PlannerSettings = defaultSettings();
   entries = new Map<string, Entry>();
   threads = new Map<string, Thread>();
   invalid = new Set<string>();
@@ -29,16 +29,16 @@ export default class JustSimplePlanner extends Plugin {
   private indexRefresh: Promise<void> | null = null;
   private indexPending = false;
   private stopping = false;
+  private indexGeneration = 0;
+  private applyingSettings = false;
+  private settingsTab: PlannerSettingsTab | null = null;
 
   async onload(): Promise<void> {
-    const saved: unknown = await this.loadData();
-    if (saved && typeof saved === 'object') {
-      const values = saved as Partial<PlannerSettings>;
-      if (typeof values.entryFolder === 'string') this.settings.entryFolder = values.entryFolder;
-      if (typeof values.threadFolder === 'string') this.settings.threadFolder = values.threadFolder;
-      if ([140, 190, 250].includes(values.dayWidth ?? 0)) this.settings.dayWidth = values.dayWidth!;
-    }
+    this.settings = loadSettings(await this.loadData());
+    try { this.settings = validateSettings(this.settings); }
+    catch (error) { new Notice(`Review planner settings: ${error instanceof Error ? error.message : String(error)}`, 9000); }
     this.history = new History({ write: async (path, expected, replacement) => {
+      this.assertCanWrite();
       const file = this.file(path);
       await this.app.vault.process(file, current => {
         if (current !== expected) throw new Error(`Note changed outside the planner: ${file.basename}.`);
@@ -52,8 +52,10 @@ export default class JustSimplePlanner extends Plugin {
     this.addCommand({ id: 'open-planner', name: 'Open planner', callback: () => { void this.perform(() => this.openPlanner()); } });
     this.addCommand({ id: 'new-entry', name: 'New entry', callback: () => this.newEntry(today()) });
     this.addCommand({ id: 'new-thread', name: 'New thread', callback: () => new ThreadModal(this.app, this).open() });
-    this.addSettingTab(new PlannerSettingsTab(this.app, this));
+    this.settingsTab = new PlannerSettingsTab(this.app, this);
+    this.addSettingTab(this.settingsTab);
     this.registerEvent(this.app.metadataCache.on('changed', (file, text) => {
+      if (!this.inScope(file.path)) { if (this.isKnown(file.path)) { this.forget(file.path); this.scheduleRefresh(); } return; }
       if (!this.isKnown(file.path) && !this.hasPlannerMetadata(file)) return;
       this.indexText(file, text); this.scheduleRefresh();
     }));
@@ -83,12 +85,46 @@ export default class JustSimplePlanner extends Plugin {
 
   link(path: string): string { return `[[${path.replace(/\.md$/i, '')}]]`; }
 
+  inScope(path: string): boolean { return pathInScope(path, this.settings); }
+
+  configurationIssue(): string | null {
+    try { validateSettings(this.settings); } catch (error) { return error instanceof Error ? error.message : String(error); }
+    if (!this.settings.searchEntireVault && !(this.app.vault.getAbstractFileByPath(this.settings.searchFolder) instanceof TFolder)) return 'Search folder does not exist. Open planner settings to select an existing folder or enable Search entire vault.';
+    return null;
+  }
+
+  async applySettings(candidate: PlannerSettings): Promise<void> {
+    if (this.applyingSettings || this.history.busy) throw new Error('Wait for the current planner change to finish before applying settings.');
+    const next = validateSettings(candidate);
+    if (!next.searchEntireVault && !(this.app.vault.getAbstractFileByPath(next.searchFolder) instanceof TFolder)) throw new Error('Search folder must be an existing folder inside this vault.');
+    const rebuild = changesIndex(this.settings, next);
+    this.applyingSettings = true;
+    try {
+      await this.saveData(next);
+      this.settings = next;
+      if (rebuild) {
+        this.indexGeneration++;
+        this.entries.clear(); this.threads.clear(); this.invalid.clear(); this.indexRevisions.clear();
+        this.indexDiscovered = false; this.history.clear();
+        await this.reloadIndex();
+      } else this.refresh();
+    } finally { this.applyingSettings = false; }
+    this.settingsTab?.synchronize();
+  }
+
+  private assertCanWrite(): void {
+    if (this.applyingSettings) throw new Error('Planner settings are being applied. Try again after they finish.');
+    const issue = this.configurationIssue();
+    if (issue) throw new Error(issue);
+  }
+
   private knownPaths(): Set<string> { return new Set([...this.entries.keys(), ...this.threads.keys(), ...this.invalid]); }
 
   private isKnown(path: string): boolean { return this.entries.has(path) || this.threads.has(path) || this.invalid.has(path); }
 
-  private hasPlannerMetadata(file: TFile): boolean {
-    const type: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter?.planner_type;
+  private hasPlannerMetadata(file: TFile, oldPath?: string): boolean {
+    const cache = this.app.metadataCache.getFileCache(file) ?? (oldPath ? this.app.metadataCache.getCache(oldPath) : null);
+    const type: unknown = cache?.frontmatter?.planner_type;
     return file.extension === 'md' && (type === 'entry' || type === 'thread');
   }
 
@@ -98,29 +134,64 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   private async reindexRenamed(file: TAbstractFile, oldPath: string): Promise<void> {
-    const moved = file instanceof TFile
-      ? this.isKnown(oldPath) || this.hasPlannerMetadata(file) ? [oldPath] : []
-      : [...this.knownPaths()].filter(path => path.startsWith(`${oldPath}/`));
-    for (const path of moved) {
-      this.forget(path);
-      const destination = this.app.vault.getAbstractFileByPath(normalizePath(`${file.path}${path.slice(oldPath.length)}`));
-      if (destination instanceof TFile && !this.stopping) this.indexText(destination, await this.app.vault.read(destination));
+    const oldPaths = [...this.knownPaths()].filter(path => path === oldPath || path.startsWith(`${oldPath}/`));
+    for (const path of oldPaths) this.forget(path);
+    const previous = oldPaths.map(path => this.app.vault.getAbstractFileByPath(normalizePath(`${file.path}${path.slice(oldPath.length)}`))).filter((item): item is TFile => item instanceof TFile && this.inScope(item.path));
+    const discovered = file instanceof TFile ? this.inScope(file.path) && (oldPaths.length || this.hasPlannerMetadata(file, oldPath)) ? [file] : [] : file instanceof TFolder ? this.plannerFilesInFolder(file, oldPath) : [];
+    const destinations = new Set([...previous, ...discovered]);
+    for (const destination of destinations) {
+      if (this.stopping) return;
+      const generation = this.indexGeneration;
+      const path = destination.path;
+      const revision = this.indexRevisions.get(path);
+      const text = await this.readIndexText(destination);
+      if (text !== null && generation === this.indexGeneration && destination.path === path && this.indexRevisions.get(path) === revision && this.inScope(path)) this.indexText(destination, text);
     }
-    if (moved.length) await this.reloadIndex();
+    if (oldPaths.length || destinations.size) await this.reloadIndex();
+  }
+
+  private plannerFilesInFolder(folder: TFolder, oldPath?: string): TFile[] {
+    if (!folderIntersectsScope(folder.path, this.settings)) return [];
+    const result: TFile[] = [];
+    for (const child of folder.children) {
+      const previousPath = oldPath ? `${oldPath}/${child.name}` : undefined;
+      if (child instanceof TFolder) result.push(...this.plannerFilesInFolder(child, previousPath));
+      else if (child instanceof TFile && this.inScope(child.path) && this.hasPlannerMetadata(child, previousPath)) result.push(child);
+    }
+    return result;
+  }
+
+  private discoverPlannerPaths(): Set<string> {
+    if (this.settings.searchEntireVault) return new Set(this.app.vault.getMarkdownFiles().filter(file => this.isKnown(file.path) || this.hasPlannerMetadata(file)).map(file => file.path));
+    const folder = this.app.vault.getAbstractFileByPath(this.settings.searchFolder);
+    return new Set(folder instanceof TFolder ? this.plannerFilesInFolder(folder).map(file => file.path) : []);
+  }
+
+  private async readIndexText(file: TFile): Promise<string | null> {
+    const path = file.path;
+    try {
+      const text = await this.app.vault.cachedRead(file);
+      return file.path === path && this.app.vault.getAbstractFileByPath(path) === file ? text : null;
+    } catch (error) {
+      // Rapid folder moves can invalidate an in-flight read; rename/metadata events supply its new path.
+      if (file.path !== path || this.app.vault.getAbstractFileByPath(path) !== file || (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')) return null;
+      throw error;
+    }
   }
 
   indexText(file: TFile, text: string): void {
     this.forget(file.path);
-    if (file.extension !== 'md') return;
+    if (file.extension !== 'md' || !this.inScope(file.path)) return;
     try {
       const { frontmatter: fm, body } = unpack(text);
       if (fm.planner_type === 'thread') {
         this.threads.set(file.path, { path: file.path, title: file.basename, status: fm.status === 'parked' || fm.status === 'closed' ? fm.status : 'active', color: typeof fm.color === 'string' ? fm.color : 'blue', order: typeof fm.order === 'number' ? fm.order : 0 });
       } else if (fm.planner_type === 'entry') {
-        if (!validDay(fm.date)) { this.invalid.add(file.path); return; }
-        const thread = this.resolveLink(fm.thread, file.path) ?? (typeof fm.thread === 'string' && !wikiTarget(fm.thread) ? `text:${fm.thread}` : 'unassigned');
-        const next = Array.isArray(fm.next) ? fm.next.map(item => this.resolveLink(item, file.path)).filter((path): path is string => path !== null && path !== file.path) : [];
-        this.entries.set(file.path, { path: file.path, title: typeof fm.title === 'string' && fm.title.trim() ? fm.title : file.basename.replace(/^\d{4}-\d{2}-\d{2} - /, ''), date: fm.date, thread, next: [...new Set(next)], body, snapshot: text });
+        const props = readEntryProperties(fm, this.settings.propertyNames);
+        if (!validDay(props.date)) { this.invalid.add(file.path); return; }
+        const thread = this.resolveLink(props.thread, file.path) ?? (typeof props.thread === 'string' && !wikiTarget(props.thread) ? `text:${props.thread}` : 'unassigned');
+        const next = Array.isArray(props.next) ? props.next.map(item => this.resolveLink(item, file.path)).filter((path): path is string => path !== null && path !== file.path) : [];
+        this.entries.set(file.path, { path: file.path, title: typeof props.title === 'string' && props.title.trim() ? props.title : file.basename.replace(/^\d{4}-\d{2}-\d{2} - /, ''), date: props.date, thread, next: [...new Set(next)], body, snapshot: text });
       }
     } catch (error) {
       if (this.app.metadataCache.getFileCache(file)?.frontmatter?.planner_type) this.invalid.add(file.path);
@@ -138,18 +209,20 @@ export default class JustSimplePlanner extends Plugin {
   private async refreshIndex(): Promise<void> {
     do {
       this.indexPending = false;
-      // Discovery needs Markdown paths across the vault because folders do not define membership.
-      // Only explicitly marked notes are read; later passes revisit known planner paths only.
-      const paths = this.indexDiscovered ? this.knownPaths() : new Set(this.app.vault.getMarkdownFiles().filter(file => this.isKnown(file.path) || this.hasPlannerMetadata(file)).map(file => file.path));
+      const generation = this.indexGeneration;
+      // Whole-vault discovery is optional; folder mode walks only the selected subtree.
+      const paths = this.indexDiscovered ? this.knownPaths() : this.discoverPlannerPaths();
       this.indexDiscovered = true;
       for (const path of paths) {
         if (this.stopping) return;
+        if (generation !== this.indexGeneration) { this.indexPending = true; break; }
+        if (!this.inScope(path)) { this.forget(path); continue; }
         const file = this.app.vault.getAbstractFileByPath(path);
         if (!(file instanceof TFile)) { this.forget(path); continue; }
         const revision = this.indexRevisions.get(path);
-        const text = await this.app.vault.cachedRead(file);
+        const text = await this.readIndexText(file);
         // A metadata event or rename may have supplied a newer snapshot while reading.
-        if (!this.stopping && file.path === path && this.indexRevisions.get(path) === revision) this.indexText(file, text);
+        if (text !== null && !this.stopping && generation === this.indexGeneration && file.path === path && this.indexRevisions.get(path) === revision) this.indexText(file, text);
       }
     } while (this.indexPending && !this.stopping);
     if (!this.stopping) this.refresh();
@@ -190,27 +263,41 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   async patch(patches: { path: string; fields?: Record<string, unknown>; body?: string; expectedText?: string; expectedBody?: string; expectedDate?: string }[]): Promise<void> {
+    this.assertCanWrite();
+    const generation = this.indexGeneration;
     const changes: Change[] = [];
     for (const patch of patches) {
       const before = await this.app.vault.read(this.file(patch.path));
       if (patch.expectedText !== undefined && before !== patch.expectedText) throw new Error('The note was edited elsewhere. Reopen it before saving.');
       const document = unpack(before);
       if (patch.expectedBody !== undefined && document.body !== patch.expectedBody) throw new Error('The note was edited elsewhere. Reopen it before saving.');
-      if (patch.expectedDate !== undefined && document.frontmatter.date !== patch.expectedDate) throw new Error('A date changed while dragging. Try again.');
-      for (const [key, value] of Object.entries(patch.fields ?? {})) {
+      const entry = document.frontmatter.planner_type === 'entry';
+      if (patch.expectedDate !== undefined && document.frontmatter[entry ? this.settings.propertyNames.date : 'date'] !== patch.expectedDate) throw new Error('A date changed while dragging. Try again.');
+      const fields = entry ? mapEntryFields(patch.fields ?? {}, this.settings.propertyNames) : patch.fields ?? {};
+      for (const [key, value] of Object.entries(fields)) {
         if (value === undefined) delete document.frontmatter[key]; else document.frontmatter[key] = value;
       }
       changes.push({ path: patch.path, before, after: pack(document.frontmatter, patch.body ?? document.body) });
     }
+    if (generation !== this.indexGeneration) throw new Error('Scope or property mapping changed while editing. Reopen the entry and try again.');
     await this.history.commit(changes);
   }
 
   async connect(source: string, target: string, remove = false): Promise<void> {
     if (source === target) return;
     if (!remove && (!this.entries.has(source) || !this.entries.has(target))) throw new Error('An entry changed or was removed. Reopen the planner and try again.');
+    await this.writeConnection(source, target, remove);
+  }
+
+  private async writeConnection(source: string, target: string, remove = false): Promise<void> {
+    this.assertCanWrite();
+    const generation = this.indexGeneration;
     const before = await this.app.vault.read(this.file(source));
+    if (generation !== this.indexGeneration) throw new Error('Scope or property mapping changed while connecting. Try again.');
     const document = unpack(before);
-    const links: string[] = Array.isArray(document.frontmatter.next) ? document.frontmatter.next.filter((value): value is string => typeof value === 'string') : [];
+    if (document.frontmatter.planner_type !== 'entry') throw new Error('The source note is no longer a planner entry.');
+    const value = document.frontmatter[this.settings.propertyNames.next];
+    const links: string[] = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
     const exists = links.some(link => this.resolveLink(link, source) === target);
     if ((!remove && exists) || (remove && !exists)) return;
     const next = links.filter(link => this.resolveLink(link, source) !== target);
@@ -223,8 +310,7 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   async uniquePath(folder: string, title: string): Promise<string> {
-    const normalized = normalizePath(folder.trim());
-    if (normalized.split('/').some(part => part === '..' || part === '.') || normalized.startsWith('/') || /^[a-z]:/i.test(normalized)) throw new Error('Choose a folder inside the vault.');
+    const normalized = normalizePath(cleanFolder(folder));
     if (normalized) {
       let current = '';
       for (const part of normalized.split('/').filter(Boolean)) {
@@ -240,57 +326,32 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   async createEntry(title: string, date: string, thread: string, body: string, previous?: string): Promise<void> {
+    this.assertCanWrite();
+    const settings = this.settings;
     if (!validDay(date)) throw new Error('Choose a valid date.');
     const path = await this.uniquePath(this.settings.entryFolder, `${date} - ${title}`);
-    const fm: Record<string, unknown> = { planner_type: 'entry', title, date, thread: thread && thread !== 'unassigned' ? thread.startsWith('text:') ? thread.slice(5) : this.link(thread) : '', next: [] };
-    const file = await this.app.vault.create(path, pack(fm, body));
-    this.indexText(file, await this.app.vault.read(file));
+    this.assertCanWrite();
+    if (settings !== this.settings) throw new Error('Settings changed while creating the entry. Try again.');
+    const fm: Record<string, unknown> = { planner_type: 'entry', ...mapEntryFields({ title, date, thread: thread && thread !== 'unassigned' ? thread.startsWith('text:') ? thread.slice(5) : this.link(thread) : '', next: [] }, settings.propertyNames) };
+    const text = pack(fm, body);
+    const file = await this.app.vault.create(path, text);
+    this.indexText(file, text);
     if (previous) {
-      try { await this.connect(previous, path); }
+      try { await this.writeConnection(previous, path); }
       catch (error) { new Notice(`Entry saved, but its connection could not be added: ${error instanceof Error ? error.message : String(error)}`, 9000); }
     }
+    if (!this.inScope(path)) new Notice('Entry saved outside the current search folder. Change the search scope to see it on the board.', 9000);
   }
 
   async createThread(title: string, color: string, status: string): Promise<void> {
+    this.assertCanWrite();
+    const settings = this.settings;
     const path = await this.uniquePath(this.settings.threadFolder, title);
+    this.assertCanWrite();
+    if (settings !== this.settings) throw new Error('Settings changed while creating the thread. Try again.');
     const text = pack({ planner_type: 'thread', status, color, order: this.threads.size }, `# ${title}\n\n`);
     const file = await this.app.vault.create(path, text);
     this.indexText(file, text);
-  }
-}
-
-class PlannerSettingsTab extends PluginSettingTab {
-  constructor(app: App, private readonly plugin: JustSimplePlanner) { super(app, plugin); }
-
-  getSettingDefinitions(): SettingDefinitionItem[] { return this.definitions(); }
-
-  private definitions(): ({ name: string; desc: string; render: (setting: Setting) => void } | { name: string; desc: string; render?: never })[] {
-    return [
-      {
-        name: 'New entries folder', desc: 'Storage only. Moving a note never changes its thread.',
-        render: setting => { setting.addText(text => text.setValue(this.plugin.settings.entryFolder).onChange(async value => { this.plugin.settings.entryFolder = value; await this.plugin.saveData(this.plugin.settings); })); },
-      },
-      {
-        name: 'New threads folder', desc: 'Thread notes hold status, color and order.',
-        render: setting => { setting.addText(text => text.setValue(this.plugin.settings.threadFolder).onChange(async value => { this.plugin.settings.threadFolder = value; await this.plugin.saveData(this.plugin.settings); })); },
-      },
-      {
-        name: 'Day width', desc: 'Default spacing between dates on the board.',
-        render: setting => { setting.addDropdown(dropdown => dropdown.addOptions({ '140': 'Compact', '190': 'Comfortable', '250': 'Wide' }).setValue(String(this.plugin.settings.dayWidth)).onChange(async value => { this.plugin.settings.dayWidth = Number(value); await this.plugin.saveData(this.plugin.settings); this.plugin.refresh(); })); },
-      },
-      {
-        name: 'Local Markdown notes',
-        desc: 'Notes are the source of truth. Properties: planner_type, title, date, thread, next; thread notes also use status, color and order. Pending tasks use their entry date. No background reminders or network requests.',
-      },
-    ];
-  }
-
-  // Obsidian before 1.13 renders settings through this fallback.
-  display(): void {
-    this.containerEl.empty();
-    for (const definition of this.definitions()) {
-      const setting = new Setting(this.containerEl).setName(definition.name).setDesc(definition.desc);
-      definition.render?.(setting);
-    }
+    if (!this.inScope(path)) new Notice('Thread saved outside the current search folder. Change the search scope to see it on the board.', 9000);
   }
 }

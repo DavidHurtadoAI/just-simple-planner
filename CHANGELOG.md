@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 — 2026-10-31
+
+- Add Search entire vault, enabled by default, and an optional Search folder with recursive folder-only discovery.
+- Make the date, title, thread and connection property names configurable, retaining the default keys date, title, thread and next.
+- Apply mappings consistently to note creation, editing, date moves, task updates and connections.
+- Organize settings into clear sections with English help, validation and explicit Apply settings.
+- Keep search scope independent of note creation folders; explain and notify when new notes are saved outside the visible scope.
+- Preserve existing saved settings and notes on update. Mapping changes do not migrate note properties; scope/schema changes clear session history and rebuild the index safely.
+
 ## 0.1.3 — 2026-10-31
 
 - Default new installations to `Planner/Entries` and `Planner/Threads`, so initial folder settings are in English for every app language.

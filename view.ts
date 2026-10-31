@@ -208,8 +208,8 @@ export class PlannerView extends ItemView implements HoverParent {
   private zoom(direction: number): void {
     const widths = [140, 190, 250];
     const day = this.centerDay();
-    this.plugin.settings.dayWidth = widths[Math.max(0, Math.min(2, widths.indexOf(this.plugin.settings.dayWidth) + direction))];
-    void this.plugin.perform(async () => { await this.plugin.saveData(this.plugin.settings); this.jump(day); });
+    const dayWidth = widths[Math.max(0, Math.min(2, widths.indexOf(this.plugin.settings.dayWidth) + direction))];
+    void this.plugin.perform(async () => { await this.plugin.applySettings({ ...this.plugin.settings, dayWidth }); this.jump(day); });
   }
 
   render(): void {
@@ -237,8 +237,9 @@ export class PlannerView extends ItemView implements HoverParent {
     else this.renderNotebook(rows, entries);
     if (!rows.length) {
       const empty = this.scroll.createDiv({ cls: 'jsp-empty' });
-      empty.createEl('h3', { text: this.plugin.entries.size || this.plugin.threads.size ? 'No matching threads' : 'Your notes, over time' });
-      empty.createEl('p', { text: 'Create a thread, then add dated entries. Notes can live anywhere in your vault.' });
+      const issue = this.plugin.configurationIssue();
+      empty.createEl('h3', { text: issue ? 'Review planner settings' : this.plugin.entries.size || this.plugin.threads.size ? 'No matching threads' : 'Your notes, over time' });
+      empty.createEl('p', { text: issue ?? 'Create a thread, then add dated entries. Search scope in settings controls which folders appear here.' });
       this.button(empty, 'New thread', 'plus', () => new ThreadModal(this.app, this.plugin).open());
     }
     if (this.showTasks) this.renderTasks(entries, rows);

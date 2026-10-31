@@ -1,5 +1,17 @@
 # Validation
 
+## Search scope and property mapping — 0.2.0
+
+On 2026-10-31, `npm run check` passed the official Obsidian lint rules with zero warnings, strict TypeScript, all twenty-four tests, the build and package audit. The central installer installed and verified 0.2.0 in the canonical `@Nexus-dev` vault.
+
+The focused `scripts/qa-settings.mjs` run passed seventeen checks inside desktop Obsidian 1.15.0: English fresh defaults and legacy settings; rejected invalid configurations without saving; folder-only discovery without whole-vault enumeration or out-of-scope reads; custom-key creation and editing through the actual entry modal; connections, disconnect and undo; date moves and stale-date rejection; task edits and filename fallback; the settings help, draft controls, validation and explicit Apply button; legacy rendering; hidden out-of-scope creation with its continuation link retained; marked notes and previously unknown folders entering and leaving the scope; history reset without automatic property migration; byte-for-byte preservation of all original notes; and no captured Obsidian errors.
+
+Regression suites also passed: eleven index/discovery checks, fifteen direct-connection checks and seven pan checks. Rapid folder renames now ignore stale in-flight reads instead of reporting transient missing-file errors. These are automated in-app checks; the connection suite uses trusted Chromium input and the pan suite uses synthetic events.
+
+The configuration suite restores the exact original `data.json` bytes, the original view and all original Markdown. Additive Spanish QA notes remain under `Pruebas/Just Simple Planner/Ensayos QA` with `planner_type: qa-archived`. The demo still has twenty entries and four threads. No notes, prior fixtures or backups are deleted.
+
+Both README settings screenshots were captured from the real Obsidian Settings window and visually inspected. English defaults and a folder-filter example were supplied temporarily without applying them; the saved configuration remained unchanged. The older rendering fallback was exercised in the current desktop version, not an actual older Obsidian installation.
+
 ## English initial folder settings — 0.1.3
 
 On 2026-10-31, `npm run check` passed the official Obsidian lint rules, strict TypeScript, all fourteen model tests, the build and package audit. The central installer installed and verified 0.1.3 in `@Nexus-dev`.
@@ -26,9 +38,9 @@ Result: **14 unit tests and 12 in-app integration checks passed**. The central i
 
 ## Automatic checks
 
-`npm run check` runs the official Obsidian ESLint rules with zero warnings, strict TypeScript checking, fourteen Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior.
+`npm run check` runs the official Obsidian ESLint rules with zero warnings, strict TypeScript checking, twenty-four Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior. Settings tests cover isolated English defaults, legacy loading, folder validation and scope boundaries, independent creation folders, reserved and duplicate keys, exact mapped reads, simultaneous mapped writes, index-reset conditions and history clearing.
 
-The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 45 KiB including the connection widgets, with Obsidian as its only external runtime module.
+The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 56.4 KiB, with Obsidian as its only external runtime module.
 
 ## Direct connection widgets — 2026-10-30
 
