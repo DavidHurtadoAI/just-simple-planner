@@ -6,9 +6,9 @@ import { ConnectModal, ThreadModal } from './modals';
 export const VIEW_TYPE = 'just-simple-planner';
 export const PLANNER_ICON = 'workflow';
 const DAYS = 91;
-const LABEL = 220;
-const CARD = 154;
-const COMPACT_CARD = 32;
+const LABEL = 184;
+const CARD = 132;
+const COMPACT_CARD = 28;
 const SVG = 'http://www.w3.org/2000/svg';
 
 type DragState = { path: string; entries: Map<string, Entry>; paths: Set<string> };
@@ -321,7 +321,7 @@ export class PlannerView extends ItemView implements HoverParent {
       const slots = Math.max(1, ...stack.map(item => item.slot + 1));
       const element = this.stage.createDiv({ cls: 'jsp-row', attr: { 'data-thread': row.path } });
       element.style.setProperty('--jsp-thread-color', this.color(row));
-      element.style.height = `${folded ? slots * COMPACT_CARD + 22 : slots * CARD + 24}px`;
+      element.style.height = `${folded ? slots * COMPACT_CARD + 18 : slots * CARD + 20}px`;
       const label = element.createDiv({ cls: 'jsp-thread-label' });
       const toggle = label.createEl('button', { cls: 'jsp-thread-toggle', attr: { 'aria-label': `${folded ? 'Expand' : 'Collapse'} ${row.title}`, 'aria-expanded': String(!folded) } });
       setIcon(toggle.createSpan(), folded ? 'chevron-right' : 'chevron-down');
@@ -339,7 +339,7 @@ export class PlannerView extends ItemView implements HoverParent {
       for (const { entry, slot } of stack) {
         const card = this.card(lane, entry, focus, folded);
         card.style.left = `${(dayNumber(entry.date) - dayNumber(this.firstDay)) * width + 10}px`;
-        card.style.top = `${slot * (folded ? COMPACT_CARD : CARD) + 12}px`;
+        card.style.top = `${slot * (folded ? COMPACT_CARD : CARD) + 10}px`;
         card.style.width = `${width - 20}px`;
       }
       lane.addEventListener('dblclick', event => {

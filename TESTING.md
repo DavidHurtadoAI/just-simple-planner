@@ -1,5 +1,13 @@
 # Validation
 
+## Compact layout — 0.3.3
+
+On 2026-10-31, `npm run check` passed all twenty-nine tests, official Obsidian lint, strict TypeScript, the production build and package checks. The central installer installed and verified the working build in the canonical `@Nexus-dev` vault. The final 0.3.3 release build was checked and installed again before publication.
+
+Native checks and screenshots covered the board, notebook and task panel. Board card height is 116 px (previously 136), ordinary rows are 152 px (178), date headers are 52 px (64), thread labels are 184 px wide (220), and toolbar buttons are 26 px high (30). Folded cards are 24 px high in 46 px rows; they remain inside their rows and connections render after folding. The notebook sidebar is 180 px, with 13 px card titles and 12 px body text. The task panel is 248 px wide, with all twelve pending demo tasks retained.
+
+The original Notebook/Board and Tasks buttons remain; no view dropdown was added. The saved horizontal zoom remains configurable. The view state was restored after inspection, the checks did not write note content or saved plugin settings, and Obsidian captured no errors. Screenshots are retained as ignored QA artifacts.
+
 ## Explicit planner notes — 0.3.2
 
 On 2026-10-31, `npm run check` passed all twenty-nine unit tests, official Obsidian lint, strict TypeScript, the production build and package checks. The bundle is 59.5 KiB. Central installation and verification passed for 0.3.2 in the canonical `@Nexus-dev` vault.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3 — 2026-10-31
+
+- Make the board, notebook and task panel more compact with smaller controls, headings and spacing.
+- Reduce board card height from 136 to 116 px, row height from 178 to 152 px, and thread-label width from 220 to 184 px. Folded cards and timeline headers also take less room.
+- Reduce notebook sidebar width and typography, and task panel width from 280 to 248 px.
+- Preserve the existing Notebook/Board and Tasks buttons and horizontal zoom settings.
+
 ## 0.3.2 — 2026-10-31
 
 - Remove Show all dated notes and its performance warning. Cards again require planner_type: entry and a valid configured date; thread notes remain rows.
