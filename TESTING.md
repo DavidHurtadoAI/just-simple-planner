@@ -1,5 +1,15 @@
 # Validation
 
+## Automatic settings saving — 0.2.2
+
+On 2026-10-31, `npm run check` passed official Obsidian lint, strict TypeScript, all twenty-four unit tests, the build and package audit. The installed development build passed all twenty-three cases in `scripts/qa-settings.mjs`, including the existing property-mapping operations and the new autosave cases: no Apply button, immediate scope switches, recovery of an empty thread, blur/Enter/close saving, inline errors, independent edits while another field is invalid, failed-switch rollback, immediate dropdowns, preservation of unfinished text, overlapping saves with a newer edit, simulated storage failure and successful retry, and legacy rendering with autosave.
+
+Controls synchronize in place. Programmatic updates do not trigger another save, and a restored switch's native checkbox state matches its visual state. The suite restores the exact original `data.json` bytes and original Markdown, retains additive QA notes as archived, and ends with twenty entries, four threads and no captured Obsidian errors. Scope-transition checks use `Vault.rename` events; automatic incoming-link rewriting through `FileManager` is outside this suite. Focus emulation permits background rendering and is disabled after the run.
+
+README settings screenshots were refreshed from the native Settings window using temporary in-memory English defaults. Capture does not save those defaults or edit note files.
+
+The final 0.2.2 package passed central installation/verification and an in-app smoke check after loading the release build: no Apply settings button, the autosave help is present, twenty entries, four threads, no invalid notes, no pending saves and no captured errors. The saved settings file retained the same SHA-256 through installation, loading and opening/closing the settings panel.
+
 ## Release build — 0.2.1
 
 On 2026-10-31, the final 0.2.1 build passed `npm run check`, including all twenty-four tests, official Obsidian lint with zero warnings, strict TypeScript and package validation. Central installation and verification reported 0.2.1 OK. After reloading inside Obsidian, the installed plugin showed the new pan hint and adjacent New thread / New entry buttons, with twenty entries, four threads, no invalid notes and no captured errors. The saved `data.json` remained byte-for-byte unchanged through installation and reload.
@@ -54,7 +64,7 @@ Result: **14 unit tests and 12 in-app integration checks passed**. The central i
 
 `npm run check` runs the official Obsidian ESLint rules with zero warnings, strict TypeScript checking, twenty-four Node tests, the production bundle and the package audit. The tests exercise invalid dates, leap years and DST boundaries, wikilinks, cyclic/branched connections, Spotlight, date-gap preservation, overlapping cards, fenced-code task exclusion, CRLF preservation, multi-file rollback, rollback conflicts and history behavior. Settings tests cover isolated English defaults, legacy loading, folder validation and scope boundaries, independent creation folders, reserved and duplicate keys, exact mapped reads, simultaneous mapped writes, index-reset conditions and history clearing.
 
-The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 57.3 KiB, with Obsidian as its only external runtime module.
+The package audit checks matching versions, required distribution files and zero runtime dependencies. The JavaScript bundle is approximately 58.6 KiB, with Obsidian as its only external runtime module.
 
 ## Direct connection widgets — 2026-10-30
 

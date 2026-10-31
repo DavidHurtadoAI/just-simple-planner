@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 — 2026-10-31
+
+- Remove Apply settings. Save switches and dropdowns immediately, and text fields on blur, Enter or closing settings.
+- Show inline validation and save feedback, retain the last valid configuration, and restore immediate controls when saving fails.
+- Keep Search folder visible so it can be configured before turning off whole-vault search.
+- Serialize overlapping saves without losing newer edits or rebuilding the settings controls.
+
 ## 0.2.1 — 2026-10-31
 
 - Keep New thread immediately before New entry in a single toolbar group, including when the toolbar wraps.

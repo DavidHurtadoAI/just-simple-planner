@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.2.1-4c819a)
+![Version](https://img.shields.io/badge/version-0.2.2-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -124,11 +124,11 @@ gh attestation verify styles.css --repo DavidHurtadoAI/just-simple-planner
 
 ## Settings
 
-Settings use English labels and defaults. Edit the fields, then select **Apply settings** to validate and save them together. Existing saved creation folders and zoom are preserved on update; the default property names and whole-vault search keep existing planner notes compatible.
+Settings use English labels and defaults and save automatically. **Switches and dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings.** Each field shows save feedback or a validation error. Invalid changes leave the last valid configuration active; a switch or dropdown that cannot be saved returns to its active value. Existing saved creation folders and zoom are preserved on update.
 
 ### Search scope: what appears on the board
 
-**Search entire vault** is on by default. Turn it off to reveal **Search folder**, where you must enter an existing vault-relative folder. Its subfolders are included. This applies to both entries and thread notes; links to notes outside that scope do not add those notes to the board.
+**Search entire vault** is on by default. **Search folder** stays visible so you can enter and save an existing vault-relative folder before switching whole-vault search off. The folder is used only when the switch is off, and its subfolders are included. This applies to both entries and thread notes; links to notes outside that scope do not add those notes to the board. An empty or invalid folder prevents the switch from turning off, with an inline explanation.
 
 Only notes marked **`planner_type: entry`** or **`planner_type: thread`** are included. Enabling whole-vault search never turns every note into a card.
 
@@ -141,7 +141,7 @@ Only notes marked **`planner_type: entry`** or **`planner_type: thread`** are in
 
 These paths do not filter existing notes, decide thread membership, or move files. You can store notes anywhere while keeping their thread through a property. If you create a note outside the selected search folder, it is saved and a notice explains why it is hidden. A connected continuation still saves its link. Change the search scope to display it.
 
-![Search scope and independent creation folders, with folder-only search shown as an example](docs/images/settings-scope.png)
+![Whole-vault search, an always-visible Search folder and independent creation folders](docs/images/settings-scope.png)
 
 ### Property mapping: use your existing frontmatter names
 
@@ -158,7 +158,7 @@ For example, select `scheduled`, `headline`, `project` and `following` if those 
 
 **Day width** chooses the default zoom. Changes to creation folders or zoom keep the current note schema and undo history.
 
-![Configurable property names, English defaults and the explicit Apply settings button](docs/images/settings-properties.png)
+![Configurable property names and English defaults, saved automatically when editing ends](docs/images/settings-properties.png)
 
 ## Try the examples
 
