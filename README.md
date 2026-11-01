@@ -16,7 +16,9 @@ A visual timeline for Obsidian: projects in rows, days in columns, and every car
 
 </div>
 
-![Twenty Spanish example notes arranged in four threads, with dated cards and connections across projects](docs/images/board.png)
+![Dragging an existing note from the file explorer into a thread, reviewing its properties and adding the card while keeping the original file in its folder](docs/images/add-existing-note.gif)
+
+**Drag a note from any folder into your planner.** Review the date and thread, then add it as a card. The original file stays where it is. The demonstration uses a fictional note in Obsidian.
 
 Your work has a past, an unfinished middle, and a next step. Just Simple Planner puts them on one continuous board. Capture a meeting, connect it to a draft, follow a branch into another project, or move the next few steps together when plans change.
 
@@ -25,6 +27,8 @@ Your work has a past, an unfinished middle, and a next step. Just Simple Planner
 > **Inspired by [Haftio](https://www.haftio.com/).** The original deserves clear credit. This is an independent Obsidian implementation. Read [the thank-you, the apology, and the story](#the-story-and-the-credit).
 
 ## Visual tour
+
+![Twenty Spanish example notes arranged in four threads, with dated cards and connections across projects](docs/images/board.png)
 
 ### The three dots: a small menu with the whole workflow
 

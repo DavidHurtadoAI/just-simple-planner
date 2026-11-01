@@ -1,5 +1,11 @@
 # Validation
 
+## README drag-and-drop recording — 2026-11-01
+
+The README's GIF was recorded in desktop Obsidian 1.15.0 with the installed 0.4.1 plugin in the canonical `@Nexus-dev` vault. A fictional `Pruebas/Notas dispersas/Reunión con Aurora.md` note starts without `planner_type`, outside the plugin's creation folders. The recording starts a real file-explorer drag using trusted Chromium mouse input, intercepts the drag data produced by Obsidian, drops onto the course thread, reviews the unchanged date and proposed properties, clicks Add to planner, and shows the new card alongside the original explorer file.
+
+`scripts/record-drag-demo.mjs` provides prepare, record, restore and encode modes. Chromium screencast frames capture the actual application; a recording-only cursor overlay makes the pointer visible. ImageMagick samples and optimizes the frames and crops window chrome and unused lower space. The original note is restored by exact Undo after recording; all twenty original entries, four threads, their Markdown bytes, the saved settings and history are preserved. The explorer and planner view are restored, and Obsidian captures no errors. Raw frames and session logs stay out of source control. Physical macOS/mobile recording is outside this check.
+
 ## Left-aligned thread titles — 0.4.1
 
 On 2026-10-31, `npm run check` passed all thirty-three unit tests, official lint with zero warnings, strict TypeScript, the build and package audit. Central installation and verification passed in `@Nexus-dev`.
