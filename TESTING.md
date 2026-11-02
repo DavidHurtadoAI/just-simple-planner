@@ -216,3 +216,18 @@ The final 0.1.0 bundle passed `npm run check`, including the official Obsidian r
 After central installation and verification, the release build passed all fifteen connection checks and seven pan checks in desktop Obsidian 1.15.0. An additional read-only in-app check verified the four searchable settings definitions, the two folder inputs and zoom dropdown, their stored values, and the pre-1.13 rendering fallback. Obsidian's hidden measuring dropdown was excluded when counting controls. Compact previews were checked again; the demo retains twenty entries, four threads, eighteen connections and no invalid notes. No Obsidian errors were captured.
 
 The current official community registry had no matching plugin ID or name. The review scope and minimum-version/mobile limitations are documented in [the Obsidian review notes](docs/OBSIDIAN_REVIEW.md). Community directory submission is performed separately by the maintainer.
+
+## Automatic card sizes and filename fallback — 2026-11-02
+
+Version 0.4.2 passes `npm run check`, including all thirty-six unit tests. New model cases cover empty/whitespace-only bodies, Markdown content, mixed-height same-day stacking and folded spacing.
+
+After central installation and verification, `node scripts/qa-card-sizes.mjs --preview` passed seven checks inside desktop Obsidian 1.15.0 in the canonical `@Nexus-dev` vault:
+
+- Title-only cards are 68 px high; cards with content retain their 116 px preview. Two-line titles and card controls remain available.
+- A configured title takes precedence. Missing or empty titles use the complete filename without `.md`, preserving date prefixes.
+- Mixed-height cards on the same day retain 16 px gaps, fit inside their row and have correctly centered connection arrows.
+- Adding content increases the height; undo restores the short card and exact original Markdown.
+- Folding gives every card the existing 24 px compact height; expanding restores the content-based sizes.
+- Notebook title-only cards omit the empty preview and shrink accordingly.
+
+The installed view was also inspected visually with the existing light theme, including a filename beginning with `2026-11-02 - `. These are DOM-based integration checks and visual inspection; no physical mobile/touch validation was performed. `--cleanup` archives the named QA fixtures without deleting them and verifies that all original planner notes remain byte-for-byte unchanged. The script refuses to write outside the canonical vault or overwrite differing existing fixtures.

@@ -54,7 +54,7 @@
 .jsp-lane { position: relative; background-image: linear-gradient(to right, transparent calc(100% - 1px), var(--background-modifier-border) 1px); background-size: var(--jsp-day-width) 100%; }
 .jsp-today-band { position: absolute; height: 100%; top: 0; background: color-mix(in srgb, var(--interactive-accent) 6%, transparent); pointer-events: none; }
 .jsp-lane.is-drop-target { box-shadow: inset 0 0 0 2px var(--interactive-accent); }
-.jsp-card { position: absolute; z-index: 2; height: 116px; padding: 8px 9px 6px; border: 1px solid var(--background-modifier-border-hover); border-left: 3px solid var(--jsp-thread-color); border-radius: 7px; background: color-mix(in srgb, var(--jsp-thread-color) 7%, var(--background-primary)); box-shadow: 0 2px 5px rgba(0,0,0,.07); cursor: grab; outline: none; display: flex; flex-direction: column; transition: opacity .15s, box-shadow .12s; overflow: visible; }
+.jsp-card { position: absolute; z-index: 2; height: var(--jsp-card-height, 116px); padding: 8px 9px 6px; border: 1px solid var(--background-modifier-border-hover); border-left: 3px solid var(--jsp-thread-color); border-radius: 7px; background: color-mix(in srgb, var(--jsp-thread-color) 7%, var(--background-primary)); box-shadow: 0 2px 5px rgba(0,0,0,.07); cursor: grab; outline: none; display: flex; flex-direction: column; transition: opacity .15s, box-shadow .12s; overflow: visible; }
 .jsp-card:hover { border-color: var(--jsp-thread-color); box-shadow: 0 3px 9px rgba(0,0,0,.12); }
 .jsp-card.is-selected, .jsp-card:focus-visible { box-shadow: 0 0 0 2px var(--interactive-accent); }
 .jsp-card.is-dimmed { opacity: .2; }
@@ -65,6 +65,8 @@
 .jsp-view .jsp-card.is-compact .jsp-connection-handle { width: 18px; height: 18px; right: -9px; top: calc(50% - 9px); padding: 2px; }
 .jsp-card-heading { display: flex; align-items: flex-start; gap: 4px; margin-bottom: 4px; }
 .jsp-card-heading strong { font-size: 11.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1; color: var(--text-normal); }
+.jsp-card.is-title-only .jsp-card-heading { margin-bottom: 0; }
+.jsp-card.is-title-only .jsp-card-bottom { margin-top: auto; }
 .jsp-card-menu { width: 16px; height: 16px; padding: 0; border: 0; box-shadow: none; background: transparent; flex-shrink: 0; color: var(--text-muted); }
 .jsp-card-menu svg { width: 14px; height: 14px; }
 .jsp-card-body { flex: 1; min-height: 0; overflow: hidden; font-size: 11px; line-height: 1.4; color: var(--text-muted); user-select: none; }
@@ -120,6 +122,7 @@
 .jsp-notebook-content h2 { font-size: 17px; margin: 12px 0; }
 .jsp-notebook-content h3 { color: var(--text-muted); font-size: 11px; margin-top: 20px; }
 .jsp-notebook-content .jsp-card { position: relative; width: 100%; height: auto; min-height: 84px; margin: 8px 0; cursor: default; }
+.jsp-notebook-content .jsp-card.is-title-only { min-height: 0; }
 .jsp-notebook-content .jsp-card-body { user-select: text; max-height: none; }
 .jsp-notebook-content .jsp-card-heading strong { font-size: 13px; }
 .jsp-notebook-content .jsp-card-body { font-size: 12px; }

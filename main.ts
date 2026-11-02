@@ -243,7 +243,7 @@ export default class JustSimplePlanner extends Plugin {
         if (!validDay(props.date)) { this.invalid.add(file.path); return; }
         const thread = this.entryThread(props.thread, file.path) || 'unassigned';
         const next = Array.isArray(props.next) ? props.next.map(item => this.resolveLink(item, file.path)).filter((path): path is string => path !== null && path !== file.path) : [];
-        this.entries.set(file.path, { path: file.path, title: typeof props.title === 'string' && props.title.trim() ? props.title : file.basename.replace(/^\d{4}-\d{2}-\d{2} - /, ''), date: props.date, thread, next: [...new Set(next)], body, snapshot: text });
+        this.entries.set(file.path, { path: file.path, title: typeof props.title === 'string' && props.title.trim() ? props.title : file.basename, date: props.date, thread, next: [...new Set(next)], body, snapshot: text });
       }
     } catch (error) {
       if (this.app.metadataCache.getFileCache(file)?.frontmatter?.planner_type) this.invalid.add(file.path);

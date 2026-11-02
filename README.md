@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.4.1-4c819a)
+![Version](https://img.shields.io/badge/version-0.4.2-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -23,6 +23,8 @@ A visual timeline for Obsidian: projects in rows, days in columns, and every car
 Your work has a past, an unfinished middle, and a next step. Just Simple Planner puts them on one continuous board. Capture a meeting, connect it to a draft, follow a branch into another project, or move the next few steps together when plans change.
 
 **One card = one Markdown note.** You choose where files live. The `thread` property places them on the board; `next` links them together. Your notes remain readable in Obsidian, other editors, and Bases when the plugin is disabled.
+
+Cards with only a title and frontmatter use a shorter height, keeping the two-line title, note menu and continuation arrow. Add Markdown content to return to the normal preview height; blank lines alone do not count as content. Entries on the same day stack using their actual heights.
 
 > **Inspired by [Haftio](https://www.haftio.com/).** The original deserves clear credit. This is an independent Obsidian implementation. Read [the thank-you, the apology, and the story](#the-story-and-the-credit).
 
@@ -146,7 +148,7 @@ A card can be `Clientes/Acme/Reunión.md` while its thread note lives in `Planne
 
 Cards require **`planner_type: entry`** and a valid **`YYYY-MM-DD`** date in the configured **Date property**, wherever the note lives. Rows use **`planner_type: thread`**, including empty threads. A date alone never adds a note; **Show all dated notes remains removed**.
 
-The `thread` property determines the row. Missing thread values appear under **Unassigned**; missing titles use the filename. There is no duplicate copy and no separate membership list hidden in plugin settings.
+The `thread` property determines the row. Missing thread values appear under **Unassigned**. The configured title property takes precedence; an empty or missing title uses the complete filename without `.md`, including any date prefix. There is no duplicate copy and no separate membership list hidden in plugin settings.
 
 ### Add an existing note — keep its calendar date or review a new one
 

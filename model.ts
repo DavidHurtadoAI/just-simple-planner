@@ -88,12 +88,17 @@ export function dateMoves(entries: ReadonlyMap<string, Entry>, paths: Iterable<s
   return result;
 }
 
-export function stackEntries(entries: Entry[]): { entry: Entry; slot: number }[] {
-  const occupied = new Map<string, number>();
+export function cardHeight(entry: Entry, compact = false): number {
+  return compact ? 24 : entry.body.trim() ? 116 : 68;
+}
+
+export function stackEntries(entries: Entry[], compact = false): { entry: Entry; slot: number; top: number; height: number }[] {
+  const occupied = new Map<string, { slot: number; top: number }>();
   return [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title) || a.path.localeCompare(b.path)).map(entry => {
-    const slot = occupied.get(entry.date) ?? 0;
-    occupied.set(entry.date, slot + 1);
-    return { entry, slot };
+    const { slot, top } = occupied.get(entry.date) ?? { slot: 0, top: 0 };
+    const height = cardHeight(entry, compact);
+    occupied.set(entry.date, { slot: slot + 1, top: top + height + (compact ? 4 : 16) });
+    return { entry, slot, top, height };
   });
 }
 

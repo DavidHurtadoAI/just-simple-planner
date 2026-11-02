@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validDay, shiftDay, dayNumber, wikiTarget, connected, spotlight, stackEntries, dateMoves, toggleTask, tasks, History, applyChanges } from '../model.ts';
+import { validDay, shiftDay, dayNumber, wikiTarget, connected, spotlight, stackEntries, cardHeight, dateMoves, toggleTask, tasks, History, applyChanges } from '../model.ts';
 
 const entry = (path, next = [], date = '2026-10-30') => ({ path, next, date, title: path, thread: 'Proyecto.md', body: '' });
 const map = (...entries) => new Map(entries.map(e => [e.path, e]));
@@ -47,6 +47,27 @@ test('same-day entries stack deterministically, independent of input order', () 
   const result = stackEntries([entry('b'), entry('c', [], '2026-11-01'), entry('a')]);
   assert.deepEqual(result.map(({ entry, slot }) => [entry.path, slot]), [['a', 0], ['b', 1], ['c', 0]]);
 });
+test('empty and whitespace-only bodies use the short card; any Markdown keeps the normal preview', () => {
+  for (const body of ['', '\n\r\n  \t']) assert.equal(cardHeight({ ...entry('a'), body }), 68);
+  for (const body of ['Texto', '[[Nota]]', '- [ ] Tarea', '![[Imagen.png]]']) assert.equal(cardHeight({ ...entry('a'), body }), 116);
+});
+
+test('mixed card sizes pack each day without gaps left by the short cards or overlaps', () => {
+  const short = entry('a');
+  const full = { ...entry('b'), body: 'Contenido' };
+  const stack = stackEntries([entry('d', [], '2026-11-01'), entry('c'), full, short]);
+  assert.deepEqual(stack.map(({ entry, top, height }) => [entry.path, top, height]), [
+    ['a', 0, 68], ['b', 84, 116], ['c', 216, 68], ['d', 0, 68]
+  ]);
+  assert.equal(short.body, '');
+  assert.equal(full.body, 'Contenido');
+});
+
+test('folded threads keep the same compact size and spacing regardless of body content', () => {
+  const stack = stackEntries([entry('a'), { ...entry('b'), body: 'Contenido' }], true);
+  assert.deepEqual(stack.map(({ top, height }) => [top, height]), [[0, 24], [28, 24]]);
+});
+
 test('task indexing ignores fenced examples and recognizes numbered tasks', () => {
   const body = '- [ ] Pendiente\n```md\n- [ ] Ejemplo\n```\n1. [X] Hecho\n~~~\n- [ ] Otro ejemplo\n~~~';
   assert.deepEqual(tasks(body), [{ line: 0, text: 'Pendiente', checked: false }, { line: 4, text: 'Hecho', checked: true }]);

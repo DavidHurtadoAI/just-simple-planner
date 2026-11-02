@@ -7,8 +7,6 @@ export const VIEW_TYPE = 'just-simple-planner';
 export const PLANNER_ICON = 'workflow';
 const DAYS = 91;
 const LABEL = 184;
-const CARD = 132;
-const COMPACT_CARD = 28;
 const SVG = 'http://www.w3.org/2000/svg';
 
 type DragState = { path: string; entries: Map<string, Entry>; paths: Set<string> };
@@ -328,11 +326,11 @@ export class PlannerView extends ItemView implements HoverParent {
     for (const row of rows) {
       const folded = this.collapsed.has(row.path);
       const visible = entries.filter(entry => entry.thread === row.path && entry.date >= this.firstDay && entry.date <= finalDay);
-      const stack = stackEntries(visible);
-      const slots = Math.max(1, ...stack.map(item => item.slot + 1));
+      const stack = stackEntries(visible, folded);
+      const extent = stack.length ? Math.max(...stack.map(item => item.top + item.height + (folded ? 4 : 16))) : folded ? 28 : 132;
       const element = this.stage.createDiv({ cls: 'jsp-row', attr: { 'data-thread': row.path } });
       element.style.setProperty('--jsp-thread-color', this.color(row));
-      element.style.height = `${folded ? slots * COMPACT_CARD + 18 : slots * CARD + 20}px`;
+      element.style.height = `${Math.max(folded ? 46 : 100, extent + (folded ? 18 : 20))}px`;
       const label = element.createDiv({ cls: 'jsp-thread-label' });
       const toggle = label.createEl('button', { cls: 'jsp-thread-toggle', attr: { 'aria-label': `${folded ? 'Expand' : 'Collapse'} ${row.title}`, 'aria-expanded': String(!folded) } });
       setIcon(toggle.createSpan(), folded ? 'chevron-right' : 'chevron-down');
@@ -349,10 +347,11 @@ export class PlannerView extends ItemView implements HoverParent {
       lane.style.width = `${DAYS * width}px`;
       const todayIndex = dayNumber(today()) - dayNumber(this.firstDay);
       if (todayIndex >= 0 && todayIndex < DAYS) { const band = lane.createDiv({ cls: 'jsp-today-band' }); band.style.left = `${todayIndex * width}px`; band.style.width = `${width}px`; }
-      for (const { entry, slot } of stack) {
+      for (const { entry, top, height } of stack) {
         const card = this.card(lane, entry, focus, folded);
         card.style.left = `${(dayNumber(entry.date) - dayNumber(this.firstDay)) * width + 10}px`;
-        card.style.top = `${slot * (folded ? COMPACT_CARD : CARD) + 10}px`;
+        card.style.top = `${top + 10}px`;
+        card.style.setProperty('--jsp-card-height', `${height}px`);
         card.style.width = `${width - 20}px`;
       }
       lane.addEventListener('dblclick', event => {
@@ -380,6 +379,8 @@ export class PlannerView extends ItemView implements HoverParent {
     card.toggleClass('is-selected', this.selected.has(entry.path));
     card.toggleClass('is-dimmed', focus !== null && !focus.has(entry.path));
     card.toggleClass('is-compact', compact);
+    const hasBody = Boolean(entry.body.trim());
+    card.toggleClass('is-title-only', !hasBody);
     if (compact) card.title = entry.title;
     this.renderedCards.set(entry.path, card);
     const heading = card.createDiv({ cls: 'jsp-card-heading' });
@@ -388,11 +389,13 @@ export class PlannerView extends ItemView implements HoverParent {
     setIcon(menu, 'ellipsis');
     menu.addEventListener('click', event => { event.stopPropagation(); this.entryMenu(event, entry); });
     if (!compact) {
-      const body = card.createDiv({ cls: 'jsp-card-body markdown-rendered' });
-      void MarkdownRenderer.render(this.app, entry.body, body, entry.path, this.renderComponent!).then(() => {
-        // Preview checkboxes must not become an accidental second editing surface.
-        body.querySelectorAll<HTMLInputElement>('input').forEach(input => { input.disabled = true; });
-      }).catch(error => { console.error('Just Simple Planner: render failed', error); body.setText(entry.body); });
+      if (hasBody) {
+        const body = card.createDiv({ cls: 'jsp-card-body markdown-rendered' });
+        void MarkdownRenderer.render(this.app, entry.body, body, entry.path, this.renderComponent!).then(() => {
+          // Preview checkboxes must not become an accidental second editing surface.
+          body.querySelectorAll<HTMLInputElement>('input').forEach(input => { input.disabled = true; });
+        }).catch(error => { console.error('Just Simple Planner: render failed', error); body.setText(entry.body); });
+      }
       const count = tasks(entry.body);
       const bottom = card.createDiv({ cls: 'jsp-card-bottom' });
       if (count.length) bottom.createSpan({ text: `${count.filter(task => task.checked).length}/${count.length} tasks` });
