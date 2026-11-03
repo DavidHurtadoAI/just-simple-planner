@@ -4,6 +4,9 @@ import { PlannerView, VIEW_TYPE, PLANNER_ICON } from './view';
 import { EntryModal, ThreadModal, MembershipModal } from './modals';
 import { defaultSettings, loadSettings, validateSettings, cleanFolder, readEntryProperties, mapEntryFields, changesIndex, creationFolder, hasLegacyScope, type PlannerSettings } from './settings';
 import { PlannerSettingsTab } from './settings-tab';
+import { BASES_VIEW_TYPE } from './base-model';
+import { BasesPlannerView, plannerBasesOptions } from './bases';
+import { MigrationModal, createMigratedBase } from './migration';
 export type { PlannerSettings } from './settings';
 
 export function unpack(text: string): { frontmatter: Record<string, unknown>; body: string } {
@@ -37,6 +40,8 @@ export default class JustSimplePlanner extends Plugin {
   threads = new Map<string, Thread>();
   invalid = new Set<string>();
   history!: History;
+  basesAvailable = false;
+  private classicActive = false;
   private refreshTimer: number | null = null;
   private indexDiscovered = false;
   private indexRevisions = new Map<string, number>();
@@ -46,6 +51,7 @@ export default class JustSimplePlanner extends Plugin {
   private indexGeneration = 0;
   private applyingSettings = false;
   private settingsTab: PlannerSettingsTab | null = null;
+  private migrationModal: MigrationModal | null = null;
 
   async onload(): Promise<void> {
     const saved: unknown = await this.loadData();
@@ -63,18 +69,24 @@ export default class JustSimplePlanner extends Plugin {
       this.indexText(file, replacement);
     } });
     this.registerView(VIEW_TYPE, leaf => new PlannerView(leaf, this));
+    this.basesAvailable = this.registerBasesView(BASES_VIEW_TYPE, {
+      name: 'Simple Planner', icon: PLANNER_ICON,
+      factory: (controller, containerEl) => new BasesPlannerView(controller, containerEl),
+      options: config => plannerBasesOptions(config),
+    });
+    this.addCommand({ id: 'create-bases-planner', name: 'Create Bases planner from classic notes', callback: () => this.openMigration() });
     this.registerHoverLinkSource(VIEW_TYPE, { display: 'Just Simple Planner', defaultMod: false });
-    this.addRibbonIcon(PLANNER_ICON, 'Open Just Simple Planner', () => { void this.perform(() => this.openPlanner()); });
-    this.addCommand({ id: 'open-planner', name: 'Open planner', callback: () => { void this.perform(() => this.openPlanner()); } });
-    this.addCommand({ id: 'new-entry', name: 'New entry', callback: () => this.newEntry(today()) });
-    this.addCommand({ id: 'new-thread', name: 'New thread', callback: () => new ThreadModal(this.app, this).open() });
-    this.addCommand({ id: 'add-active-note', name: 'Add active note to planner', checkCallback: checking => {
+    this.addRibbonIcon(PLANNER_ICON, 'Open Just Simple Planner (classic)', () => { void this.perform(() => this.openPlanner()); });
+    this.addCommand({ id: 'open-planner', name: 'Open classic planner', callback: () => { void this.perform(() => this.openPlanner()); } });
+    this.addCommand({ id: 'new-entry', name: 'New classic entry', callback: () => this.newEntry(today()) });
+    this.addCommand({ id: 'new-thread', name: 'New classic thread', callback: () => { void this.perform(async () => { await this.reloadIndex(); new ThreadModal(this.app, this).open(); }); } });
+    this.addCommand({ id: 'add-active-note', name: 'Add active note to classic planner', checkCallback: checking => {
       const file = this.app.workspace.getActiveFile();
       if (!file || file.extension !== 'md') return false;
       if (!checking) void this.perform(() => this.reviewNote(file));
       return true;
     } });
-    this.addCommand({ id: 'remove-active-note', name: 'Remove active note from planner', checkCallback: checking => {
+    this.addCommand({ id: 'remove-active-note', name: 'Remove active note from classic planner', checkCallback: checking => {
       const file = this.app.workspace.getActiveFile();
       if (!file || this.app.metadataCache.getFileCache(file)?.frontmatter?.planner_type !== 'entry') return false;
       if (!checking) void this.perform(() => this.reviewNote(file, { remove: true }));
@@ -85,17 +97,19 @@ export default class JustSimplePlanner extends Plugin {
       const type: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter?.planner_type;
       if (type === 'thread') return;
       menu.addSeparator();
-      if (this.entries.has(file.path)) menu.addItem(item => item.setTitle('Show in planner').setIcon('workflow').onClick(() => { void this.perform(() => this.showEntry(file.path)); }));
-      else menu.addItem(item => item.setTitle('Add note to planner…').setIcon('workflow').onClick(() => { void this.perform(() => this.reviewNote(file)); }));
-      if (type === 'entry') menu.addItem(item => item.setTitle('Remove note from planner…').setIcon('minus-circle').onClick(() => { void this.perform(() => this.reviewNote(file, { remove: true })); }));
+      if (type === 'entry') menu.addItem(item => item.setTitle('Show in classic planner').setIcon('workflow').onClick(() => { void this.perform(() => this.showEntry(file.path)); }));
+      else menu.addItem(item => item.setTitle('Add note to classic planner…').setIcon('workflow').onClick(() => { void this.perform(() => this.reviewNote(file)); }));
+      if (type === 'entry') menu.addItem(item => item.setTitle('Remove note from classic planner…').setIcon('minus-circle').onClick(() => { void this.perform(() => this.reviewNote(file, { remove: true })); }));
     }));
     this.settingsTab = new PlannerSettingsTab(this.app, this);
     this.addSettingTab(this.settingsTab);
     this.registerEvent(this.app.metadataCache.on('changed', (file, text) => {
+      if (!this.classicActive) return;
       if (!this.isKnown(file.path) && !this.hasPlannerMetadata(file)) return;
       this.indexText(file, text); this.scheduleRefresh();
     }));
     this.registerEvent(this.app.metadataCache.on('resolved', () => {
+      if (!this.classicActive) return;
       if (!this.indexDiscovered) { void this.perform(() => this.reloadIndex()); return; }
       // Resolve links from the latest in-memory snapshots, without rereading every note.
       for (const entry of [...this.entries.values()]) {
@@ -105,14 +119,20 @@ export default class JustSimplePlanner extends Plugin {
       this.scheduleRefresh();
     }));
     this.registerEvent(this.app.vault.on('delete', file => {
+      if (!this.classicActive) return;
       for (const path of this.knownPaths()) if (path === file.path || path.startsWith(`${file.path}/`)) this.forget(path);
       this.scheduleRefresh();
     }));
     this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+      if (!this.classicActive) return;
       void this.perform(() => this.reindexRenamed(file, oldPath));
     }));
+    this.registerEvent(this.app.workspace.on('layout-change', () => {
+      if (this.classicActive && !this.indexRefresh && !this.app.workspace.getLeavesOfType(VIEW_TYPE).length) this.classicViewClosed();
+    }));
     this.register(() => { this.stopping = true; if (this.refreshTimer !== null) window.clearTimeout(this.refreshTimer); });
-    this.app.workspace.onLayoutReady(() => { void this.perform(() => this.reloadIndex()); });
+    this.register(() => this.migrationModal?.close());
+
   }
 
   file(path: string): TFile {
@@ -252,6 +272,7 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   async reloadIndex(): Promise<void> {
+    this.classicActive = true;
     if (this.stopping) return;
     this.indexPending = true;
     if (!this.indexRefresh) this.indexRefresh = this.refreshIndex().finally(() => { this.indexRefresh = null; });
@@ -260,6 +281,7 @@ export default class JustSimplePlanner extends Plugin {
 
   private async refreshIndex(): Promise<void> {
     do {
+      if (!this.classicActive) return;
       this.indexPending = false;
       const generation = this.indexGeneration;
       // One initial cache-only pass; later file events discover newly marked notes.
@@ -300,13 +322,22 @@ export default class JustSimplePlanner extends Plugin {
     for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) if (leaf.view instanceof PlannerView) leaf.view.render();
   }
 
+  openMigration(): void { this.migrationModal?.close(); this.migrationModal = new MigrationModal(this.app, this); this.migrationModal.open(); }
+  onModalClosed(): void { this.classicViewClosed(); }
+  async createBasesPlanner(path: string): Promise<TFile> { return createMigratedBase(this, path); }
+
+  classicViewClosed(leaf?: import('obsidian').WorkspaceLeaf): void {
+    if (this.app.workspace.getLeavesOfType(VIEW_TYPE).some(other => other !== leaf)) return;
+    this.classicActive = false; this.indexDiscovered = false; this.indexGeneration++;
+  }
+
   async openPlanner(): Promise<void> {
     let leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE)[0];
     if (!leaf) { leaf = this.app.workspace.getLeaf('tab'); await leaf.setViewState({ type: VIEW_TYPE, active: true }); }
     await this.app.workspace.revealLeaf(leaf);
   }
 
-  newEntry(date: string, thread = '', previous?: string): void { new EntryModal(this.app, this, { date, thread, previous }).open(); }
+  newEntry(date: string, thread = '', previous?: string): void { void this.perform(async () => { await this.reloadIndex(); new EntryModal(this.app, this, { date, thread, previous }).open(); }); }
   editEntry(entry: Entry): void { new EntryModal(this.app, this, { entry, date: entry.date, thread: entry.thread }).open(); }
 
   threadValue(thread: string): string {
@@ -318,6 +349,7 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   async reviewNote(file: TFile, options: { thread?: string; date?: string; remove?: boolean } = {}): Promise<void> {
+    await this.reloadIndex();
     this.assertCanWrite();
     if (file.extension !== 'md') throw new Error('Choose one existing Markdown note.');
     const generation = this.indexGeneration;
@@ -360,6 +392,7 @@ export default class JustSimplePlanner extends Plugin {
   }
 
   async showEntry(path: string): Promise<void> {
+    await this.reloadIndex();
     const entry = this.entries.get(path);
     if (!entry) throw new Error('This entry needs a valid date in the configured Date property.');
     await this.openPlanner();

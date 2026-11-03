@@ -124,6 +124,11 @@ export class PlannerSettingsTab extends PluginSettingTab {
   private sections(): SettingSection[] {
     const property = (key: EntryProperty, name: string, desc: string): SettingRow => this.text(key, name, `${desc}. Default: ${DEFAULT_PROPERTIES[key]}.`, DEFAULT_PROPERTIES[key]);
     return [
+      { heading: 'Bases transition', rows: [
+        { name: 'Classic view is deprecated', desc: 'Use the Simple Planner layout in Bases for new planners. The classic view remains available during the transition; no removal date is set. This is the same plugin and the same Markdown notes, with independent filters and settings for each Bases view.' },
+        { name: 'Create a Bases planner', desc: 'Review the current planner and create a new .base file. Existing notes and classic settings stay unchanged. Bases must be enabled.', render: setting => { setting.addButton(button => button.setButtonText('Review migration').onClick(() => this.plugin.openMigration())); } },
+        { name: 'Classic settings below', desc: 'These folders and property names apply to the classic view. Bases planners store their own property mapping and day width in each Base view and use native Bases note creation.' },
+      ] },
       {
         heading: 'New note locations', rows: [
           { name: 'Saving settings', desc: 'Dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings. Invalid changes show an error beside the field; the last valid configuration stays active.' },

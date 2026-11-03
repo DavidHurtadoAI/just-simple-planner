@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.2 — 2026-11-03
+
+First public release of the Bases transition. The unpublished 0.5.0 and 0.5.1 development previews are included here.
+
+- Add **Simple Planner** as a native Bases layout: several planners, Base-selected notes, per-view property mapping/day width/state, same-day query sorting, independent histories and explicit empty thread rows. Keep Calendar independent.
+- **Deprecate the standalone classic view**, keeping it available with stable command IDs, settings and saved tabs. No removal date is set. Label classic membership actions and explain the transition in the UI and migration guides in English and Spanish.
+- Add migration to a new Base with a review of counts, property mapping and creation locations, followed by a comparison of entries, threads and connections. Keep existing notes/settings in place, retain empty rows and refuse to overwrite an existing Base.
+- Draw cards through the inclusive **End date**, including repeated occurrences and ongoing ranges. Pack overlapping spans without covering one another; preserve short/full heights and compact rows. Show full ranges in Notebook and connect arrows at the actual card end.
+- Add **Optional scheduling**: repeat rules, repeat-until, skipped days and additional dates, with date-list editors, undo and concurrent-edit checks. All appearances share the source note, one task set and note-level connections.
+- Preserve range duration, written times and UTC offsets during ordinary/flow moves, including dragging from a later day or a clipped range. Guard ambiguous series moves, filtered flows, computed fields and stale editors.
+- Share the renderer across classic and Bases while keeping query-scoped caches/history in Bases. Start the classic global discovery only when needed and stop it when the last classic view/action closes.
+- Document the new workflow with seven native Obsidian screenshots and a comparison/troubleshooting guide.
+
+## 0.4.2 — 2026-11-02
+
+- Automatically shorten title-only cards and pack mixed-height cards without gaps.
+- Use the complete filename without `.md`, including date prefixes, when the title property is missing or blank.
+
 ## 0.4.1 — 2026-10-31
 
 - Align thread titles and their disclosure arrows to the left in both expanded and folded rows. Short titles now share the same starting position as longer titles instead of being centered by Obsidian's default button layout.

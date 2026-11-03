@@ -1,6 +1,7 @@
-import { ItemView, Component, MarkdownRenderer, Menu, Notice, setIcon, type WorkspaceLeaf, type HoverParent, type HoverPopover } from 'obsidian';
+import { ItemView, Component, MarkdownRenderer, Menu, Notice, setIcon, type App, type WorkspaceLeaf, type HoverParent, type HoverPopover } from 'obsidian';
 import type JustSimplePlanner from './main';
-import { connected, spotlight, stackEntries, tasks, today, shiftDay, dayNumber, validDay, dateMoves, type Entry, type Thread } from './model';
+import type { PlannerController } from './controller';
+import { connected, spotlight, stackEntries, boardSpan, entryEnd, tasks, today, shiftDay, dayNumber, validDay, dateMoves, type Entry, type Thread } from './model';
 import { ConnectModal, ThreadModal } from './modals';
 
 export const VIEW_TYPE = 'just-simple-planner';
@@ -9,10 +10,10 @@ const DAYS = 91;
 const LABEL = 184;
 const SVG = 'http://www.w3.org/2000/svg';
 
-type DragState = { path: string; entries: Map<string, Entry>; paths: Set<string> };
-type ConnectionDrag = { pointerId: number; source: string; target: string | null; startX: number; startY: number; x: number; y: number; moved: boolean };
+type DragState = { path: string; entries: Map<string, Entry>; paths: Set<string>; dayOffset: number };
+type ConnectionDrag = { pointerId: number; source: string; target: string | null; sourceCard: HTMLElement; targetCard: HTMLElement | null; startX: number; startY: number; x: number; y: number; moved: boolean };
 
-export class PlannerView extends ItemView implements HoverParent {
+export class PlannerSurface extends Component implements HoverParent {
   hoverPopover: HoverPopover | null = null;
   private root!: HTMLElement;
   private scroll!: HTMLElement;
@@ -34,6 +35,7 @@ export class PlannerView extends ItemView implements HoverParent {
   private firstDay = shiftDay(today(), -30);
   private notebookDate = today();
   private initialScroll = true;
+  private restoredScroll: { left: number; top: number } | null = null;
   private scrolling = false;
   private panning = false;
   private dragging: DragState | null = null;
@@ -41,23 +43,34 @@ export class PlannerView extends ItemView implements HoverParent {
   private renderComponent: Component | null = null;
   private drawFrame = 0;
   private renderedCards = new Map<string, HTMLElement>();
+  private allCards = new Set<HTMLElement>();
+  private footerSummary = '';
   private edgeLayer: SVGSVGElement | null = null;
   private linking: ConnectionDrag | null = null;
   private connectionPreview: SVGSVGElement | null = null;
   private connectionFrame = 0;
   private suppressConnectorClickUntil = 0;
 
-  constructor(leaf: WorkspaceLeaf, private readonly plugin: JustSimplePlanner) { super(leaf); }
+  constructor(readonly app: App, readonly contentEl: HTMLElement, private readonly plugin: PlannerController, private readonly saveState?: () => void) { super(); }
   getViewType(): string { return VIEW_TYPE; }
   getDisplayText(): string { return 'Just Simple Planner'; }
   getIcon(): string { return PLANNER_ICON; }
 
-  getState(): Record<string, unknown> { return { mode: this.mode, firstDay: this.firstDay, collapsed: [...this.collapsed], activeThread: this.activeThread }; }
+  getState(): Record<string, unknown> { return { mode: this.mode, firstDay: this.firstDay, collapsed: [...this.collapsed], activeThread: this.activeThread, search: this.search, status: this.status, showTasks: this.showTasks, scrollLeft: this.scroll?.scrollLeft ?? 28 * this.plugin.settings.dayWidth, scrollTop: this.scroll?.scrollTop ?? 0 }; }
   async setState(state: Record<string, unknown>): Promise<void> {
     if (state.mode === 'board' || state.mode === 'notebook') this.mode = state.mode;
     if (validDay(state.firstDay)) this.firstDay = state.firstDay;
     if (Array.isArray(state.collapsed)) this.collapsed = new Set(state.collapsed.filter((value): value is string => typeof value === 'string'));
     if (typeof state.activeThread === 'string') this.activeThread = state.activeThread;
+    if (typeof state.search === 'string') this.search = state.search;
+    if (['all', 'active', 'parked', 'closed'].includes(String(state.status))) this.status = String(state.status);
+    if (typeof state.showTasks === 'boolean') this.showTasks = state.showTasks;
+    if (typeof state.scrollLeft === 'number' && Number.isFinite(state.scrollLeft) && state.scrollLeft >= 0) {
+      this.restoredScroll = { left: state.scrollLeft, top: typeof state.scrollTop === 'number' && Number.isFinite(state.scrollTop) && state.scrollTop >= 0 ? state.scrollTop : 0 };
+      this.initialScroll = false;
+    } else this.initialScroll = true;
+    const search = this.root?.querySelector<HTMLInputElement>('.jsp-search'); if (search) search.value = this.search;
+    const status = this.root?.querySelector<HTMLSelectElement>('[aria-label="Thread status"]'); if (status) status.value = this.status;
     this.render();
   }
 
@@ -70,20 +83,28 @@ export class PlannerView extends ItemView implements HoverParent {
     this.jump(entry.date);
   }
 
-  async onOpen(): Promise<void> {
+  onload(): void {
     this.contentEl.empty();
     this.contentEl.addClass('jsp-container');
     this.root = this.contentEl.createDiv({ cls: 'jsp-view', attr: { tabindex: '0', 'aria-label': 'Just Simple Planner' } });
+    if (!this.plugin.basesMode) {
+      const transition = this.root.createDiv({ cls: 'jsp-transition', attr: { role: 'note' } });
+      transition.createSpan({ text: 'Classic view (deprecated) · Still available during the Bases transition. No removal date is set. Your notes stay in place.' });
+      if (this.plugin.openMigration) this.button(transition, 'Create Bases planner', 'workflow', () => this.plugin.openMigration!());
+    }
     const toolbar = this.root.createDiv({ cls: 'jsp-toolbar' });
     const brand = toolbar.createDiv({ cls: 'jsp-brand' });
     setIcon(brand.createSpan(), PLANNER_ICON); brand.createSpan({ text: 'Just Simple Planner' });
     const search = toolbar.createEl('input', { cls: 'jsp-search', attr: { type: 'search', placeholder: 'Filter entries…', 'aria-label': 'Filter entries' } });
+    search.value = this.search;
     this.registerDomEvent(search, 'input', () => { this.search = search.value; this.render(); });
     const status = toolbar.createEl('select', { attr: { 'aria-label': 'Thread status' } });
     for (const [value, label] of [['all', 'All threads'], ['active', 'Active'], ['parked', 'Parked'], ['closed', 'Closed']]) status.createEl('option', { text: label, value });
+    status.value = this.status;
     this.registerDomEvent(status, 'change', () => { this.status = status.value; this.render(); });
     this.modeButton = this.button(toolbar, 'Notebook', 'notebook-text', () => { this.mode = this.mode === 'board' ? 'notebook' : 'board'; this.initialScroll = true; this.render(); });
     const creation = toolbar.createDiv({ cls: 'jsp-create-actions', attr: { role: 'group', 'aria-label': 'Create notes' } });
+    if (this.plugin.manageThreads) this.button(creation, 'Thread notes', 'list-tree', () => this.plugin.manageThreads!());
     this.button(creation, 'New thread', 'plus', () => new ThreadModal(this.app, this.plugin).open());
     this.button(creation, 'New entry', 'square-pen', () => this.plugin.newEntry(today(), this.activeThread || this.plugin.rows()[0]?.path || ''));
     const navigation = this.root.createDiv({ cls: 'jsp-navigation' });
@@ -123,11 +144,12 @@ export class PlannerView extends ItemView implements HoverParent {
     this.render();
   }
 
-  async onClose(): Promise<void> {
+  onunload(): void {
     this.finishConnection(false, false);
     if (this.drawFrame) this.root.win.cancelAnimationFrame(this.drawFrame);
     if (this.renderComponent) { this.renderComponent.unload(); this.removeChild(this.renderComponent); }
     this.contentEl.removeClass('jsp-container');
+    this.contentEl.empty();
   }
 
   private button(parent: HTMLElement, label: string, icon: string, action: () => void): HTMLButtonElement {
@@ -261,12 +283,13 @@ export class PlannerView extends ItemView implements HoverParent {
     if (!this.root || this.dragging || this.panning || this.linking) return;
     const active = this.root.doc.activeElement as HTMLElement | null;
     const focusedPath = active?.closest<HTMLElement>('.jsp-card')?.dataset.path;
+    const focusedDate = active?.closest<HTMLElement>('.jsp-card')?.dataset.date;
     this.selected = new Set([...this.selected].filter(path => this.plugin.entries.has(path)));
     const left = this.scroll.scrollLeft; const top = this.scroll.scrollTop;
     this.scrolling = true;
     if (this.renderComponent) { this.renderComponent.unload(); this.removeChild(this.renderComponent); }
     this.renderComponent = this.addChild(new Component());
-    this.scroll.empty(); this.rail.empty(); this.renderedCards.clear();
+    this.scroll.empty(); this.rail.empty(); this.renderedCards.clear(); this.allCards.clear();
     const query = this.search.toLocaleLowerCase().trim();
     const entries = [...this.plugin.entries.values()].filter(entry => !query || `${entry.title} ${entry.body}`.toLocaleLowerCase().includes(query));
     const rows = this.plugin.rows().filter(row => (this.status === 'all' || row.status === this.status) && (!query || entries.some(entry => entry.thread === row.path) || row.title.toLocaleLowerCase().includes(query)));
@@ -277,27 +300,41 @@ export class PlannerView extends ItemView implements HoverParent {
     this.focusButton.hidden = !this.focusPath;
     this.rail.hidden = !this.showTasks;
     this.root.toggleClass('jsp-has-tasks', this.showTasks);
+    this.root.querySelector('[aria-label="Tasks"]')?.setAttribute('aria-pressed', String(this.showTasks));
     if (this.mode === 'board') this.renderBoard(rows, entries);
     else this.renderNotebook(rows, entries);
     if (!rows.length) {
       const empty = this.scroll.createDiv({ cls: 'jsp-empty' });
       const issue = this.plugin.configurationIssue();
       empty.createEl('h3', { text: issue ? 'Review planner settings' : this.plugin.entries.size || this.plugin.threads.size ? 'No matching threads' : 'Your notes, over time' });
-      empty.createEl('p', { text: issue ?? 'Create a thread or entry, right-click a Markdown note in the file explorer and choose Add note to planner, or drop a note here. Only marked entries with a valid configured date appear; notes can stay anywhere in the vault.' });
+      empty.createEl('p', { text: issue ?? (this.plugin.basesMode ? 'This Base selects the notes. Create an entry, add a thread row or adjust the Base filters and Date property. Selected Markdown notes with a valid date appear here; a planner marker is not required.' : 'Create a thread or entry, right-click a Markdown note in the file explorer and choose Add note to planner, or drop a note here. Only marked entries with a valid configured date appear; notes can stay anywhere in the vault.') });
       this.button(empty, 'New thread', 'plus', () => new ThreadModal(this.app, this.plugin).open());
       this.bindNoteDrop(empty, null, false);
     }
     if (this.showTasks) this.renderTasks(entries, rows);
     const count = rows.reduce((sum, row) => sum + entries.filter(entry => entry.thread === row.path).length, 0);
-    this.footer.setText(`${count} entries · ${rows.length} threads · ${this.selected.size} selected${this.plugin.invalid.size ? ` · ${this.plugin.invalid.size} notes with invalid date or frontmatter` : ''} · All changes are saved to Markdown`);
-    this.scroll.scrollTop = top;
-    if (this.initialScroll && this.mode === 'board') { this.scroll.scrollLeft = 28 * this.plugin.settings.dayWidth; this.initialScroll = false; }
+    this.footerSummary = `${this.plugin.scopeMessage ? this.plugin.scopeMessage + ' · ' : ''}${count} entries · ${rows.length} threads${this.plugin.schedulingEnabled ? ` · ${this.allCards.size} visible appearances` : ''}${this.plugin.invalid.size ? ` · ${this.plugin.invalid.size} notes with invalid date or frontmatter` : ''}`;
+    this.updateFooter();
+    this.scroll.scrollTop = this.restoredScroll?.top ?? top;
+    if (this.restoredScroll) { this.scroll.scrollLeft = this.restoredScroll.left; this.restoredScroll = null; }
+    else if (this.initialScroll && this.mode === 'board') { this.scroll.scrollLeft = 28 * this.plugin.settings.dayWidth; this.initialScroll = false; }
     else this.scroll.scrollLeft = left;
     this.scrolling = false;
-    if (focusedPath) this.renderedCards.get(focusedPath)?.focus({ preventScroll: true });
-    this.app.workspace.requestSaveLayout();
+    if (focusedPath) ([...this.allCards].find(card => card.dataset.path === focusedPath && card.dataset.date === focusedDate) ?? this.renderedCards.get(focusedPath))?.focus({ preventScroll: true });
+    this.persistState();
     this.queueEdges();
   }
+
+  private flowPaths(start: Iterable<string>): Set<string> {
+    return this.plugin.flowPaths ? this.plugin.flowPaths(start) : connected(this.plugin.entries, start);
+  }
+
+  private updateFooter(): void {
+    this.footer.setText(`${this.footerSummary} · ${this.selected.size} selected · All changes are saved to Markdown`);
+    this.footer.title = this.plugin.scheduleNotice ?? '';
+  }
+
+  private persistState(): void { if (this.saveState) this.saveState(); else this.app.workspace.requestSaveLayout(); }
 
   private color(row: Thread): string {
     return /^(red|orange|yellow|green|cyan|blue|purple|pink)$/.test(row.color) ? `var(--color-${row.color})` : /^#[0-9a-f]{6}$/i.test(row.color) ? row.color : 'var(--color-blue)';
@@ -306,6 +343,7 @@ export class PlannerView extends ItemView implements HoverParent {
   private renderBoard(rows: Thread[], entries: Entry[]): void {
     const width = this.plugin.settings.dayWidth;
     const finalDay = shiftDay(this.firstDay, DAYS - 1);
+    const appearances = this.plugin.projectEntries?.(entries, this.firstDay, finalDay) ?? entries;
     this.stage = this.scroll.createDiv({ cls: 'jsp-board' });
     this.stage.style.setProperty('--jsp-day-width', `${width}px`);
     this.stage.style.width = `${LABEL + DAYS * width}px`;
@@ -325,8 +363,8 @@ export class PlannerView extends ItemView implements HoverParent {
     const focus = this.focusPath ? spotlight(this.plugin.entries, this.focusPath) : null;
     for (const row of rows) {
       const folded = this.collapsed.has(row.path);
-      const visible = entries.filter(entry => entry.thread === row.path && entry.date >= this.firstDay && entry.date <= finalDay);
-      const stack = stackEntries(visible, folded);
+      const visible = appearances.filter(entry => entry.thread === row.path && boardSpan(entry, this.firstDay, finalDay) !== null);
+      const stack = stackEntries(visible, folded, this.plugin.queryOrder);
       const extent = stack.length ? Math.max(...stack.map(item => item.top + item.height + (folded ? 4 : 16))) : folded ? 28 : 132;
       const element = this.stage.createDiv({ cls: 'jsp-row', attr: { 'data-thread': row.path } });
       element.style.setProperty('--jsp-thread-color', this.color(row));
@@ -348,11 +386,13 @@ export class PlannerView extends ItemView implements HoverParent {
       const todayIndex = dayNumber(today()) - dayNumber(this.firstDay);
       if (todayIndex >= 0 && todayIndex < DAYS) { const band = lane.createDiv({ cls: 'jsp-today-band' }); band.style.left = `${todayIndex * width}px`; band.style.width = `${width}px`; }
       for (const { entry, top, height } of stack) {
+        const span = boardSpan(entry, this.firstDay, finalDay)!;
         const card = this.card(lane, entry, focus, folded);
-        card.style.left = `${(dayNumber(entry.date) - dayNumber(this.firstDay)) * width + 10}px`;
+        card.style.left = `${(dayNumber(span.start) - dayNumber(this.firstDay)) * width + 10}px`;
         card.style.top = `${top + 10}px`;
         card.style.setProperty('--jsp-card-height', `${height}px`);
-        card.style.width = `${width - 20}px`;
+        card.style.width = `${span.days * width - 20}px`;
+        card.toggleClass('continues-before', span.continuesBefore); card.toggleClass('continues-after', span.continuesAfter);
       }
       lane.addEventListener('dblclick', event => {
         if ((event.target as HTMLElement).closest('.jsp-card')) return;
@@ -375,19 +415,35 @@ export class PlannerView extends ItemView implements HoverParent {
   }
 
   private card(parent: HTMLElement, entry: Entry, focus: Set<string> | null, compact = false): HTMLElement {
-    const card = parent.createDiv({ cls: 'jsp-card', attr: { tabindex: '0', 'data-path': entry.path, 'data-date': entry.date, 'aria-label': `${entry.title}, ${entry.date}` } });
+    const source = this.plugin.entries.get(entry.path) ?? entry;
+    const end = entryEnd(entry); const range = entry.date === end ? entry.date : `${entry.date} through ${end}`;
+    const card = parent.createDiv({ cls: 'jsp-card', attr: { tabindex: '0', 'data-path': entry.path, 'data-date': entry.date, 'data-end-date': end, 'aria-label': `${entry.title}, ${range}` } });
+    card.toggleClass('is-multi-day', end !== entry.date);
     card.toggleClass('is-selected', this.selected.has(entry.path));
     card.toggleClass('is-dimmed', focus !== null && !focus.has(entry.path));
     card.toggleClass('is-compact', compact);
     const hasBody = Boolean(entry.body.trim());
     card.toggleClass('is-title-only', !hasBody);
-    if (compact) card.title = entry.title;
-    this.renderedCards.set(entry.path, card);
+    card.title = `${entry.title} · ${range}`;
+    this.allCards.add(card);
+    if (!this.renderedCards.has(entry.path) || entry.date === (entry.occurrence?.sourceDate ?? entry.date)) this.renderedCards.set(entry.path, card);
     const heading = card.createDiv({ cls: 'jsp-card-heading' });
     heading.createEl('strong', { text: entry.title });
+    if (entry.occurrence) {
+      const o = entry.occurrence;
+      card.dataset.scheduleKind = o.kind; card.dataset.sourceDate = o.sourceDate;
+      const label = o.kind === 'repeat' ? 'Repeats · opens the same note' : o.kind === 'additional' ? 'Additional date · opens the same note' : end !== entry.date ? 'Multi-day note' : '';
+      card.title = [entry.title, entry.date === o.end ? entry.date : `${entry.date} through ${o.end}`, label, ...o.warnings, ...(o.limited ? ['Limited to 500 appearances in this window'] : [])].filter(Boolean).join(' · ');
+      if (label || o.warnings.length || o.limited) {
+        const badge = heading.createSpan({ cls: 'jsp-schedule-indicator', attr: { title: card.title, 'aria-label': [label, ...o.warnings].filter(Boolean).join(' · ') } });
+        setIcon(badge, o.warnings.length || o.limited ? 'triangle-alert' : o.kind === 'repeat' ? 'repeat' : o.kind === 'additional' ? 'calendar-plus' : 'calendar-range');
+      }
+      card.toggleClass('has-schedule-warning', Boolean(o.warnings.length || o.limited));
+    }
     const menu = heading.createEl('button', { cls: 'jsp-card-menu', attr: { title: 'Entry actions', 'aria-label': `Actions for ${entry.title}` } });
     setIcon(menu, 'ellipsis');
     menu.addEventListener('click', event => { event.stopPropagation(); this.entryMenu(event, entry); });
+    if (this.mode === 'notebook' && end !== entry.date) card.createDiv({ cls: 'jsp-card-date-range', text: range });
     if (!compact) {
       if (hasBody) {
         const body = card.createDiv({ cls: 'jsp-card-body markdown-rendered' });
@@ -401,15 +457,17 @@ export class PlannerView extends ItemView implements HoverParent {
       if (count.length) bottom.createSpan({ text: `${count.filter(task => task.checked).length}/${count.length} tasks` });
       const add = bottom.createEl('button', { attr: { title: 'Add connected entry', 'aria-label': `Continue ${entry.title}` } });
       setIcon(add, 'arrow-right');
-      add.addEventListener('click', event => { event.stopPropagation(); this.plugin.newEntry(shiftDay(entry.date, 1), entry.thread, entry.path); });
+      add.addEventListener('click', event => { event.stopPropagation(); this.plugin.newEntry(shiftDay(source.date, 1), source.thread, source.path); });
     }
+    const outside = this.plugin.outsideLinks?.(entry) ?? 0;
+    if (outside) card.createSpan({ cls: 'jsp-outside-links', text: `↗ ${outside}`, attr: { title: `${outside} connected entries outside this Base. Whole-flow moves are unavailable until those entries are included.` } });
     if (this.mode === 'board') {
       const handle = card.createEl('button', { cls: 'jsp-connection-handle', attr: { type: 'button', draggable: 'false', title: 'Drag to another entry to connect', 'aria-label': `Connect from ${entry.title}` } });
       setIcon(handle, 'plus');
       handle.addEventListener('pointerdown', event => {
         if (event.button !== 0 || this.dragging || this.panning || this.linking) return;
         event.preventDefault(); event.stopPropagation();
-        this.linking = { pointerId: event.pointerId, source: entry.path, target: null, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false };
+        this.linking = { pointerId: event.pointerId, source: entry.path, target: null, sourceCard: card, targetCard: null, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false };
         this.root.addClass('jsp-connecting'); card.addClass('is-connection-source');
         this.connectionPreview = document.createElementNS(SVG, 'svg');
         this.connectionPreview.classList.add('jsp-connection-preview');
@@ -444,12 +502,16 @@ export class PlannerView extends ItemView implements HoverParent {
       if (this.linking || this.panning || (!event.ctrlKey && !event.metaKey)) return;
       this.app.workspace.trigger('hover-link', { event, source: VIEW_TYPE, hoverParent: this, targetEl: card, linktext: entry.path, sourcePath: entry.path });
     });
-    if (this.mode === 'board') {
+    if (this.mode === 'board' && (this.plugin.canMove?.(entry) ?? true)) {
       card.draggable = true;
       card.addEventListener('dragstart', event => {
         if (this.linking || this.panning || (event.target as HTMLElement).closest('a, button')) { event.preventDefault(); return; }
-        const paths = event.shiftKey ? connected(this.plugin.entries, [entry.path]) : this.selected.has(entry.path) ? new Set(this.selected) : new Set([entry.path]);
-        this.dragging = { path: entry.path, entries: new Map(this.plugin.entries), paths };
+        const paths = event.shiftKey ? this.flowPaths([entry.path]) : this.selected.has(entry.path) ? new Set(this.selected) : new Set([entry.path]);
+        if (!paths.size) { event.preventDefault(); return; }
+        const rect = card.getBoundingClientRect();
+        const dayOffset = end !== entry.date && event.clientX >= rect.left && event.clientX <= rect.right
+          ? Math.max(0, Math.min(dayNumber(end) - dayNumber(entry.date), Math.floor((event.clientX - parent.getBoundingClientRect().left) / this.plugin.settings.dayWidth) - (dayNumber(entry.date) - dayNumber(this.firstDay)))) : 0;
+        this.dragging = { path: entry.path, entries: new Map(this.plugin.entries), paths, dayOffset };
         this.dropped = false;
         event.dataTransfer!.setData('application/x-just-simple-planner', entry.path);
         event.dataTransfer!.effectAllowed = 'move';
@@ -461,8 +523,8 @@ export class PlannerView extends ItemView implements HoverParent {
   }
 
   private updateSelection(): void {
-    for (const [path, card] of this.renderedCards) card.toggleClass('is-selected', this.selected.has(path));
-    this.footer.setText(`${this.plugin.entries.size} entries · ${this.plugin.rows().length} threads · ${this.selected.size} selected · All changes are saved to Markdown`);
+    for (const card of this.allCards) card.toggleClass('is-selected', this.selected.has(card.dataset.path!));
+    this.updateFooter();
   }
 
   private isExternalNoteDrag(event: DragEvent): boolean {
@@ -513,7 +575,7 @@ export class PlannerView extends ItemView implements HoverParent {
     const index = Math.floor((event.clientX - lane.getBoundingClientRect().left) / this.plugin.settings.dayWidth);
     if (index < 0 || index >= DAYS) { this.render(); return; }
     if (drag.paths.size > 1 && row.path !== origin.thread) { new Notice('Move a single entry to change its thread. A flow keeps its original threads.'); this.render(); return; }
-    const destination = shiftDay(this.firstDay, index);
+    const destination = shiftDay(this.firstDay, index - drag.dayOffset);
     const delta = dayNumber(destination) - dayNumber(origin.date);
     const moves = dateMoves(drag.entries, drag.paths, delta);
     const patches = [...moves].map(([path, date]) => ({ path, expectedText: drag.entries.get(path)!.snapshot, expectedDate: drag.entries.get(path)!.date, fields: { date, ...(drag.paths.size === 1 && row.path !== origin.thread ? { thread: row.path === 'unassigned' ? '' : row.path.startsWith('text:') ? row.path.slice(5) : this.plugin.link(row.path) } : {}) } }));
@@ -540,7 +602,11 @@ export class PlannerView extends ItemView implements HoverParent {
     content.createEl('h2', { text: row.title });
     this.button(content, 'New entry', 'plus', () => this.plugin.newEntry(today(), row.path));
     const focus = this.focusPath ? spotlight(this.plugin.entries, this.focusPath) : null;
-    const ordered = entries.filter(entry => entry.thread === row.path).sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+    const finalDay = shiftDay(this.firstDay, DAYS - 1);
+    if (this.plugin.schedulingEnabled) content.createEl('p', { cls: 'jsp-schedule-window', text: `Scheduled appearances: ${this.firstDay} through ${finalDay}. Use the date navigation to change this window.` });
+    const appearances = this.plugin.projectEntries?.(entries, this.firstDay, finalDay, true) ?? entries;
+    const order = new Map(entries.map((entry, index) => [entry.path, index]));
+    const ordered = appearances.filter(entry => entry.thread === row.path).sort((a, b) => a.date.localeCompare(b.date) || (this.plugin.queryOrder ? order.get(a.path)! - order.get(b.path)! : a.title.localeCompare(b.title)));
     let date = '';
     for (const entry of ordered) {
       if (date !== entry.date) { date = entry.date; content.createEl('h3', { text: date, attr: { 'data-date': date } }); }
@@ -569,6 +635,7 @@ export class PlannerView extends ItemView implements HoverParent {
   }
 
   private entryMenu(event: MouseEvent, entry: Entry): void {
+    entry = this.plugin.entries.get(entry.path) ?? entry;
     const menu = new Menu();
     menu.addItem(item => item.setTitle('Edit entry').setIcon('pencil').onClick(() => this.plugin.editEntry(entry)));
     menu.addItem(item => item.setTitle('Open note to the right').setIcon('panel-right').onClick(() => { void this.plugin.perform(() => this.app.workspace.getLeaf('split', 'vertical').openFile(this.plugin.file(entry.path))); }));
@@ -576,10 +643,11 @@ export class PlannerView extends ItemView implements HoverParent {
     menu.addItem(item => item.setTitle('Connect to…').setIcon('link').onClick(() => new ConnectModal(this.app, this.plugin, entry).open()));
     if (entry.next.length) for (const next of entry.next) menu.addItem(item => item.setTitle(`Disconnect ${this.plugin.entries.get(next)?.title ?? next}`).setIcon('unlink').onClick(() => { void this.plugin.perform(() => this.plugin.connect(entry.path, next, true)); }));
     menu.addSeparator();
-    menu.addItem(item => item.setTitle('Select connected flow').setIcon('workflow').onClick(() => { this.selected = connected(this.plugin.entries, [entry.path]); this.updateSelection(); }));
+    menu.addItem(item => item.setTitle('Select connected flow').setIcon('workflow').onClick(() => { this.selected = this.flowPaths([entry.path]); this.updateSelection(); }));
     menu.addItem(item => item.setTitle('Spotlight').setIcon('focus').onClick(() => { this.focusPath = entry.path; this.render(); }));
+    this.plugin.scheduleMenu?.(menu, entry);
     menu.addSeparator();
-    menu.addItem(item => item.setTitle('Remove note from planner…').setIcon('minus-circle').onClick(() => { void this.plugin.perform(() => this.plugin.reviewNote(this.plugin.file(entry.path), { remove: true })); }));
+    if (!this.plugin.basesMode) menu.addItem(item => item.setTitle('Remove note from planner…').setIcon('minus-circle').onClick(() => { void this.plugin.perform(() => this.plugin.reviewNote(this.plugin.file(entry.path), { remove: true })); }));
     menu.showAtMouseEvent(event);
   }
 
@@ -617,12 +685,14 @@ export class PlannerView extends ItemView implements HoverParent {
 
   private onScroll(): void {
     if (this.linking) { this.updateConnection(); return; }
-    if (this.scrolling || this.dragging || this.panning || this.mode !== 'board') return;
+    if (this.scrolling || this.dragging || this.panning) return;
+    if (this.mode !== 'board') { this.persistState(); return; }
     const width = this.plugin.settings.dayWidth;
     const left = this.scroll.scrollLeft;
     const end = this.scroll.scrollWidth - this.scroll.clientWidth;
     if (left < 5 * width) { this.firstDay = shiftDay(this.firstDay, -21); this.render(); this.scroll.scrollLeft = left + 21 * width; }
     else if (end - left < 5 * width) { this.firstDay = shiftDay(this.firstDay, 21); this.render(); this.scroll.scrollLeft = left - 21 * width; }
+    this.persistState();
   }
 
   private queueEdges(): void {
@@ -654,17 +724,18 @@ export class PlannerView extends ItemView implements HoverParent {
   private updateConnection(): void {
     const link = this.linking;
     const preview = this.connectionPreview;
-    const source = link ? this.renderedCards.get(link.source) : null;
+    const source = link?.sourceCard;
     if (!link || !preview || !source) return;
     const viewport = this.scroll.getBoundingClientRect();
     const inside = link.x >= viewport.left && link.x < viewport.right && link.y >= viewport.top && link.y < viewport.bottom;
     const hit = inside ? this.root.doc.elementFromPoint(link.x, link.y)?.closest<HTMLElement>('.jsp-card') : null;
     const candidate = hit?.dataset.path;
-    link.target = candidate && candidate !== link.source && this.renderedCards.get(candidate) === hit && this.plugin.entries.has(candidate) ? candidate : null;
-    for (const [path, card] of this.renderedCards) card.toggleClass('is-connection-target', path === link.target);
+    link.target = candidate && candidate !== link.source && hit && this.allCards.has(hit) && this.plugin.entries.has(candidate) ? candidate : null;
+    link.targetCard = link.target ? hit ?? null : null;
+    for (const card of this.allCards) card.toggleClass('is-connection-target', card === link.targetCard);
     const stage = this.stage.getBoundingClientRect();
     const from = source.getBoundingClientRect();
-    const target = link.target ? this.renderedCards.get(link.target)!.getBoundingClientRect() : null;
+    const target = link.targetCard?.getBoundingClientRect() ?? null;
     const x1 = from.right - stage.left; const y1 = from.top + from.height / 2 - stage.top;
     const forward = target ? target.left >= from.right : link.x >= from.right;
     const x2 = (target ? forward ? target.left : target.right : link.x) - stage.left;
@@ -705,7 +776,7 @@ export class PlannerView extends ItemView implements HoverParent {
     this.connectionFrame = 0;
     this.connectionPreview?.remove(); this.connectionPreview = null;
     this.root.removeClass('jsp-connecting');
-    for (const card of this.renderedCards.values()) card.removeClass('is-connection-source', 'is-connection-target');
+    for (const card of this.allCards) card.removeClass('is-connection-source', 'is-connection-target');
     if (this.scroll.hasPointerCapture(link.pointerId)) this.scroll.releasePointerCapture(link.pointerId);
     if (link.moved || !commit) this.suppressConnectorClickUntil = this.root.win.performance.now() + 300;
     if (commit && link.moved && link.target) void this.plugin.perform(() => this.plugin.connect(link.source, link.target!));
@@ -768,4 +839,22 @@ export class PlannerView extends ItemView implements HoverParent {
       }
     }
   }
+}
+
+/** Preserve the existing workspace type and commands throughout the transition. */
+export class PlannerView extends ItemView {
+  surface!: PlannerSurface;
+  constructor(leaf: WorkspaceLeaf, private readonly plugin: JustSimplePlanner) { super(leaf); }
+  getViewType(): string { return VIEW_TYPE; }
+  getDisplayText(): string { return 'Just Simple Planner (classic)'; }
+  getIcon(): string { return PLANNER_ICON; }
+  async onOpen(): Promise<void> {
+    await this.plugin.reloadIndex();
+    this.surface = this.addChild(new PlannerSurface(this.app, this.contentEl, this.plugin));
+  }
+  async onClose(): Promise<void> { if (this.surface) { this.removeChild(this.surface); this.surface.unload(); } this.plugin.classicViewClosed(this.leaf); }
+  getState(): Record<string, unknown> { return this.surface?.getState() ?? {}; }
+  async setState(state: Record<string, unknown>): Promise<void> { await this.surface?.setState(state); }
+  render(): void { this.surface?.render(); }
+  revealEntry(entry: Entry): void { this.surface?.revealEntry(entry); }
 }

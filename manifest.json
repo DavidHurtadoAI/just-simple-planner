@@ -1,9 +1,9 @@
 {
   "id": "just-simple-planner",
   "name": "Just Simple Planner",
-  "version": "0.4.2",
+  "version": "0.5.2",
   "minAppVersion": "1.10.2",
-  "description": "Plan and follow your notes on a continuous timeline, grouped into threads with connections, tasks and a notebook view. Fully local.",
+  "description": "Plan notes in Bases or the classic timeline, with threads, connections, tasks and a notebook view. Local and dependency-free.",
   "author": "David Hurtado",
   "authorUrl": "https://github.com/DavidHurtadoAI",
   "isDesktopOnly": false
