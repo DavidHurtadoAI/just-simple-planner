@@ -90,6 +90,7 @@ export class MembershipModal extends Modal {
     this.contentEl.createEl('p', { text: this.remove
       ? 'Only planner_type: entry will be removed. The note, its date, thread, connections and calendar properties are kept. Undo in the planner restores the entry.'
       : 'This updates properties in the original note. The file stays in its current folder and is not duplicated. Other properties and the Markdown body are kept.' });
+    if (this.remove) this.contentEl.createEl('p', { text: 'The marker is shared: every planner filtering on it is affected. A Base that selects this note without the marker will still show it.' });
     let date = this.draft.date;
     let thread = this.draft.thread;
     const preview = this.contentEl.createDiv({ cls: 'jsp-membership-preview', attr: { 'aria-live': 'polite' } });

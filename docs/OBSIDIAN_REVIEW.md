@@ -10,10 +10,10 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 
 ## Code and lifecycle
 
-The 0.5.2 Bases transition was checked on 2026-11-03 with the official linter, package audit, 63 unit tests and 80 native Bases/scheduling/span/card/pan/connection checks. See [TESTING.md](../TESTING.md) for current evidence and limits.
+Version 0.5.6 was checked on 2026-11-03 with the official linter, package audit, 63 unit tests and 177 native checks across 14 suites. The native embed-resize warning is separately traced and recorded; unexpected errors remain failures. See [TESTING.md](../TESTING.md) for methods, evidence and limits.
 
 - `eslint-plugin-obsidianmd` recommended rules run with zero warnings in `npm run check` and GitHub Actions. Strict TypeScript and model tests run in the same check.
-- Runtime code uses the public Obsidian API and browser APIs. No Node.js or Electron imports, global debugging `app`, dynamic code execution or unbundled package dependencies.
+- Runtime code uses the public Obsidian API and browser APIs, with one guarded native-preview cleanup call: `HoverPopover.hide()` is available at runtime but omitted from the typings. The surface checks that it exists and otherwise falls back to component unload. The desktop verification and older-version limits are documented in TESTING.md. No Node.js or Electron imports, global debugging `app`, dynamic code execution or unbundled package dependencies.
 - Vault changes use `Vault.process` with exact-content conflict checks, including undo and rollback. Whole-document snapshots keep edits to properties and note bodies in one atomic write rather than separate frontmatter/body updates. YAML formatting may be normalized; this is disclosed in the README.
 - App events and persistent DOM listeners use registration helpers. Markdown previews have a render-scoped component; observers and animation frames are cleaned up. Plugin unload does not detach workspace leaves.
 - UI uses sentence case, theme variables and namespaced CSS. Inline values describe computed timeline geometry or user-selected colors. Commands have stable IDs and no default global hotkeys.

@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.5.5-4c819a)
+![Version](https://img.shields.io/badge/version-0.5.6-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -28,7 +28,7 @@ Cards with only a title and frontmatter use a shorter height, keeping the two-li
 
 > **Inspired by [Haftio](https://www.haftio.com/).** The original deserves clear credit. This is an independent Obsidian implementation. Read [the thank-you, the apology, and the story](#the-story-and-the-credit).
 
-**0.5.5 fixes keyboard priority inside Planner:** F2 opens the selected entry's editor even after another file was active. It also includes the hidden-tab position fix and the migration dialog's Create Base correction. Update the same plugin; existing notes, settings and Base files are retained.
+**New in 0.5.6:** remove a note from the planner through its right-click or three-dot menu while keeping the file and its other data, with Undo/Redo. Hover a card to see Obsidian's native preview of its properties and content. Both features work in Bases and the retained classic view. Update the same plugin; existing notes, settings and Base files are retained.
 
 ## Bases planners and the classic-view transition
 
@@ -51,7 +51,18 @@ Read the **[complete migration guide](docs/MIGRATION.md)** or **[guía en españ
 
 ### Several planners, selected by Bases
 
-Selected Markdown notes with a valid date appear without requiring a `planner_type: entry` marker. Thread notes provide row metadata. Same-day cards follow the Base's sorting; dates stay chronological and thread rows retain their status/order. Native Bases grouping does not replace the Thread property. The Base's result limit and filters still apply.
+**For the usual marker-based planner, the Base's filters determine membership.** In **All views**, choose **Any of the following are true** and add `planner_type` **is** `entry` **or** `planner_type` **is** `thread`. Migration creates this filter automatically. Its `.base` representation is:
+
+```yaml
+filters:
+  or:
+    - note.planner_type == "entry"
+    - note.planner_type == "thread"
+```
+
+With that filter, **`planner_type: entry` includes a note as a card**, provided it has a valid selected date; **`planner_type: thread` supplies a thread row**. Removing the entry marker excludes the note from this query. The property is named `planner_type`, not `planner_entry`.
+
+Custom Base queries can deliberately select unmarked notes with a valid date. The layout does not add a hidden marker requirement or change those filters. Same-day cards follow the Base's sorting; dates stay chronological and thread rows retain their status/order. Native Bases grouping does not replace the Thread property. The Base's result limit and filters still apply.
 
 Different views can choose different properties and display settings. Shared filters in the same Base still apply to all its views; use separate Base files for independent root queries. Use **Thread notes** to retain empty rows even outside the query.
 
@@ -76,7 +87,7 @@ Board and Notebook share the existing editor, previews, links, selection, Spotli
 ### Creation, scope and careful writes
 
 - Use the planner's **New entry** and **New thread** actions for its editor and connected continuations. These create files through native Bases creation, which chooses the folder/name and applies the Base's creation context. There are no planner-specific creation-folder settings for Bases. A restrictive filter can still exclude a newly created note; the plugin does not override the query. The native Bases **New** action keeps its own normal behavior and may need a date to be filled in.
-- New entries retain `planner_type: entry` for classic compatibility. Existing unmarked notes are not marked merely by viewing them. File-explorer membership actions are explicitly labeled **classic**. To exclude notes from a Bases planner, adjust its filters; removing the classic marker need not remove a note selected by other criteria.
+- New entries retain `planner_type: entry`. Existing unmarked notes are not marked merely by viewing them. **Remove note from planner…** is available from a card's right-click and three-dot menus in both layouts. It removes only that entry marker and supports Undo/Redo. Every planner filtering on the shared marker is affected; a Base selecting the note by other criteria can still show it. The action is disabled for cards without `planner_type: entry`. File-explorer membership actions remain explicitly labeled **classic**.
 - Linked thread notes are resolved directly. **Thread notes** manages explicit empty rows for this view, including notes outside its filters. Removing a row reference never deletes the note. Editing a shared thread's status/order affects that same note wherever it is used.
 - An indicator identifies connections outside the current Base results. A whole-flow move is refused until all resolved successors are included. Individual edits stay within the current query; there is no hidden global graph traversal.
 - Datetime cards use their written main day. Select **End date property** to extend each card through its inclusive final day. Overlapping date ranges stack without covering one another, retaining the short/full card heights and Base sort. Ongoing notes remain visible if they start before the loaded window; dashed edges mark ranges continuing beyond it. Notebook displays the full date range.
@@ -111,7 +122,7 @@ This is the menu you will use to turn individual notes into a connected story:
 | **Disconnect…** | Remove a particular outgoing connection. The two notes remain. |
 | **Select connected flow** | Select the entry and its connected successors, including branches. Drag them together to preserve the gaps between their dates. |
 | **Spotlight** | Highlight this path through the work and dim unrelated entries. |
-| **Remove note from planner…** | Review removal of the planner marker while keeping the note, date and calendar properties. Available from 0.4.0. |
+| **Remove note from planner…** | Remove only `planner_type: entry`, keeping the file and all its other data. Available from right-click and three-dot card menus in both layouts, with Undo/Redo. Bases filters determine whether the note disappears. |
 
 ### Draw connections with your mouse
 
@@ -120,6 +131,14 @@ Hover a card to reveal the **+ on its right edge**. Drag it onto another card: t
 ![Dragging a live connection from one thread to another, with a highlighted destination](docs/images/connect.png)
 
 Hover an existing line to reveal **×** and disconnect it directly. The three-dot menu remains available. **Escape** or a drop on empty space cancels the gesture; holding the pointer near the edge scrolls the board. Repeated drops do not create duplicate links. Creation and disconnection both support Undo/Redo.
+
+### Preview a card's note on hover
+
+Hover a card to open Obsidian's native note preview, including its properties and Markdown content, without clicking or holding Ctrl/Cmd by default. It works in the board and Notebook, in classic and Bases, including folded cards and repeated appearances of the same note. Enable the **Page preview** core plugin; its **Just Simple Planner** source controls whether a modifier key is required.
+
+Moving onto card buttons or Markdown links closes the card preview and keeps those controls' own actions. Starting a card drag, a pan or a connection also closes the note preview so it does not cover the gesture. Closing the planner closes its preview. Touch devices keep their existing behavior.
+
+![Native note preview on card hover, showing the source properties and Markdown content](docs/images/card-hover-preview.png)
 
 ### Fold a thread without losing its history
 
@@ -210,7 +229,7 @@ A card can be `Clientes/Acme/Reunión.md` while its thread note lives in `Planne
 
 ### Only notes you include become entries
 
-Cards require **`planner_type: entry`** and a valid **`YYYY-MM-DD`** date in the configured **Date property**, wherever the note lives. Rows use **`planner_type: thread`**, including empty threads. A date alone never adds a note; **Show all dated notes remains removed**.
+**In the classic view**, cards require **`planner_type: entry`** and a valid **`YYYY-MM-DD`** date in the configured **Date property**, wherever the note lives. Rows use **`planner_type: thread`**, including empty threads. A date alone never adds a classic card; **Show all dated notes remains removed**. Bases uses its query instead; the `entry OR thread` filter above gives it the same explicit membership rule.
 
 The `thread` property determines the row. Missing thread values appear under **Unassigned**. The configured title property takes precedence; an empty or missing title uses the complete filename without `.md`, including any date prefix. There is no duplicate copy and no separate membership list hidden in plugin settings.
 
@@ -237,7 +256,11 @@ Dragging a card that is already on the board still reschedules it directly, as b
 
 ### Remove from planner — keep the note and its calendar entry
 
-Use **Remove note from classic planner…** in the file explorer, or **Remove note from planner…** in a classic card's menu. The review removes **only `planner_type: entry`**. The file, date, title, thread, connections, calendar properties and note body are retained. Existing wikilinks are kept; an excluded note's arrows are not drawn. **Undo / Redo** also cover adding and removing existing notes.
+Use **Remove note from planner…** from the right-click or three-dot menu of a classic or Bases card. The review removes **only `planner_type: entry`**. The file, date, title, thread, connections, calendar properties and note body are retained. Existing wikilinks are kept; an excluded note's arrows are not drawn. **Undo / Redo** cover removal, including restoring a note that has disappeared from the Base results.
+
+**The marker belongs to the shared note.** Removing it affects classic and every Base whose filters require it. With the `entry OR thread` filter above, the card disappears. If a custom Base query still selects the unmarked note, it remains visible there; adjust that Base's filters to exclude it. Cards without the entry marker have the removal action disabled. The file explorer also offers **Remove note from classic planner…** for the same marker operation.
+
+![Remove note from planner review: only the entry marker is removed, with shared-filter behavior explained](docs/images/remove-from-planner.png)
 
 The command palette also provides **Add active note to classic planner** and **Remove active note from classic planner**. An included note's file menu offers **Show in classic planner**, which clears filters and reveals its card.
 
@@ -294,7 +317,7 @@ Revisamos el planteamiento con el equipo.
 
 | Entry property | Meaning |
 | --- | --- |
-| `planner_type: entry` | Opt this note into the planner. Other notes are never turned into cards automatically. |
+| `planner_type: entry` | Include this note in classic and in Bases that filter on this marker. Custom Base queries may also select unmarked notes. |
 | `title` | Card title; falls back to the filename. Editing it does not rename the file. |
 | `date` | Calendar day in `YYYY-MM-DD` format. Bases also accepts datetimes and uses their written day. |
 | `thread` | Wikilink to the thread note. A plain-text group is also accepted. |
@@ -354,7 +377,7 @@ Publishing a version tag triggers [the release workflow](.github/workflows/relea
 
 The scripts that drive Obsidian's CLI are maintainer tools for the dedicated `@Nexus-dev` development vault. They guard its exact path. The public examples above can be used in your own vault without running those scripts.
 
-This version focuses on local planning. It does not connect external calendars, send background reminders, provide real-time collaboration, implement recurring entries or parse Tasks-plugin deadline syntax. Physical phones/tablets, touch dragging, very large vaults and simultaneous multi-device editing have not been validated.
+This version focuses on local planning. It does not connect external calendars, send background reminders, provide real-time collaboration or parse Tasks-plugin deadline syntax. Repeated appearances and additional dates are supported in Bases through Optional scheduling; classic retains its previous scheduling behavior. Physical phones/tablets, touch dragging, very large vaults and simultaneous multi-device editing have not been validated.
 
 Found a bug or have a useful workflow to suggest? [Open an issue](https://github.com/DavidHurtadoAI/just-simple-planner/issues). Include your Obsidian version, the gesture you tried, and what you expected to happen.
 

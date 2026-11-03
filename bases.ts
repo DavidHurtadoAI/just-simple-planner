@@ -345,25 +345,32 @@ export class BasesPlannerSession extends Component implements PlannerController 
     return file instanceof TFile && file.extension === 'md' ? file : null;
   }
   async reviewNote(file: TFile, options: { thread?: string; date?: string; remove?: boolean } = {}): Promise<void> {
-    if (options.remove) throw new Error('Use this Base\'s filters to exclude notes. The original note is retained.');
     this.assertLive();
+    if (options.remove && !this.entries.has(file.path)) throw new Error('This note is outside the current planner results.');
     const text = await this.app.vault.read(file); const doc = unpack(text);
-    if (doc.frontmatter.planner_type && doc.frontmatter.planner_type !== 'entry') throw new Error('Thread notes and notes with another planner type cannot become entries.');
+    if (options.remove ? doc.frontmatter.planner_type !== 'entry' : doc.frontmatter.planner_type && doc.frontmatter.planner_type !== 'entry') throw new Error(options.remove ? 'Only notes marked planner_type: entry can be removed from the planner.' : 'Thread notes and notes with another planner type cannot become entries.');
     const props = this.settings.propertyNames; const originalThread = this.thread(doc.frontmatter[props.thread], file.path);
     const draft: MembershipDraft = { file, path: file.path, text, frontmatter: doc.frontmatter, body: doc.body, generation: this.schemaGeneration, title: typeof doc.frontmatter[props.title] === 'string' ? doc.frontmatter[props.title] as string : file.basename, originalThread, thread: options.thread ?? originalThread, date: options.date ?? noteDay(doc.frontmatter[props.date]) ?? today() };
-    this.show(new MembershipModal(this.app, this, draft, false));
+    this.show(new MembershipModal(this.app, this, draft, Boolean(options.remove)));
   }
   async saveMembership(draft: MembershipDraft, date: string, thread: string, remove: boolean): Promise<void> {
-    if (remove) throw new Error('Use the Base filters to exclude this note.');
-    this.assertLive(); this.assertWritable('date'); this.assertWritable('thread');
+    this.assertLive();
     if (draft.generation !== this.schemaGeneration) throw new Error('The view properties changed. Reopen the review before saving.');
     if (this.app.vault.getAbstractFileByPath(draft.path) !== draft.file) throw new Error('The note was moved. Reopen the review.');
-    const fm: Record<string, unknown> = { ...draft.frontmatter, planner_type: 'entry' };
-    const moved = this.dateEdit(fm, date, this.records.get(draft.path));
-    if (moved.endKey && moved.end) fm[moved.endKey] = moved.end;
-    Object.assign(fm, mapEntryFields({ date: moved.start, thread: this.threadValue(thread) }, this.settings.propertyNames));
+    const fm: Record<string, unknown> = { ...draft.frontmatter };
+    if (remove) {
+      if (!this.entries.has(draft.path)) throw new Error('This note is outside the current planner results.');
+      if (fm.planner_type !== 'entry') throw new Error('This note is no longer a planner entry.');
+      delete fm.planner_type;
+    } else {
+      this.assertWritable('date'); this.assertWritable('thread');
+      fm.planner_type = 'entry';
+      const moved = this.dateEdit(fm, date, this.records.get(draft.path));
+      if (moved.endKey && moved.end) fm[moved.endKey] = moved.end;
+      Object.assign(fm, mapEntryFields({ date: moved.start, thread: this.threadValue(thread) }, this.settings.propertyNames));
+    }
     await this.history.commit([{ path: draft.path, before: draft.text, after: pack(fm, draft.body) }]);
-    new Notice('Note updated in place. This Base\'s filters still determine whether it appears.'); this.scheduleRefresh();
+    new Notice(remove ? 'Planner marker removed. The note is kept; Bases filters determine whether it is hidden. Undo is available in this planner.' : 'Note updated in place. This Base\'s filters still determine whether it appears.'); this.scheduleRefresh();
   }
 
   manageThreads(): void {

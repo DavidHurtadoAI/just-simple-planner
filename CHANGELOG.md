@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.6 — 2026-11-03
+
+- Add **Remove note from planner…** to both the right-click and three-dot card menus in Bases, retaining the existing classic action. Remove only `planner_type: entry`, with exact Undo/Redo and concurrent-edit protection. Preserve the file, body, dates, thread, links and scheduling properties; disable removal for unmarked cards.
+- Explain shared membership: the normal Base filter is `planner_type == entry OR planner_type == thread`. Removing the entry marker affects every planner filtering on that shared property. A custom query that still selects the unmarked note can keep showing it.
+- Show Obsidian's native **Page preview** on ordinary desktop card hover, without Ctrl/Cmd by default. Support board and Notebook, classic and Bases, folded cards and repeated appearances. Respect the core plugin's source preference, preserve button/link actions and close previews when starting gestures or closing the view.
+- Close previews before rebuilding their card anchors, and dismiss previews that finish loading after a gesture starts or the surface becomes hidden/closed.
+- Add native hover/removal regression suites and update the migration guides and README.
+
+## 0.5.5 — 2026-11-03
+
+- Give the focused Planner priority over Obsidian's global keyboard shortcuts through a native keymap scope. F2 edits the selected entry instead of renaming a previously active file. Release the scope when leaving or closing Planner.
+- Verify trusted F2 input in classic/Bases and ordinary keyboard routing outside Planner.
+
+## 0.5.4 — 2026-11-03
+
+- Preserve date-window and Notebook scroll positions when a Base updates while its tab is hidden. Defer rendering until its viewport is visible and prevent zero-width scroll events from overwriting saved state.
+- Expand the native regression battery across migration, editing, scheduling, multi-day cards, membership, discovery, gestures and hidden-view behavior.
+
 ## 0.5.3 — 2026-11-03
 
 - Fix the migration dialog's Create Base button. Version 0.5.2 removed its DOM disabled attribute after reviewing, but Obsidian's ButtonComponent still considered it disabled and ignored clicks. Update the component state through its public API when reviewing, creating and recovering from an error.

@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { startPreviewDiagnostics, stopPreviewDiagnostics, verifyNativeErrors } from './qa-preview-diagnostics.mjs';
 
 const cli = 'C:\\Program Files\\Obsidian\\Obsidian.com';
 const canonical = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../@Nexus-dev');
@@ -26,15 +27,24 @@ function escape() {
 }
 const passed = [];
 function check(name, code) { const output = state(`${code}return 'PASS';`); if (!output.includes('PASS')) throw Error(`${name}: ${output}`); passed.push(name); console.log(`PASS ${name}`); }
+function leavePreview() {
+  // A preview of the previous destination can cover a neighbouring card.
+  // Leave it normally before beginning another gesture.
+  mouse('mouseMoved', { x: 150, y: 110 });
+  state("await wait(()=>!view.hoverPopover);return 'PREVIEW CLOSED';");
+}
 function dragTo(destination) {
+  leavePreview();
   const points = json('q.points()');
   mouse('mouseMoved', points.hover);
+  mouse('mouseMoved', points.start);
   mouse('mousePressed', points.start);
-  state("assert(view.linking?.source===q.source.path,'The connector did not receive the press');return 'LINKING';");
+  state("const start=q.points().start;assert(view.linking?.source===q.source.path,'The connector did not receive the press: '+document.elementFromPoint(start.x,start.y)?.outerHTML.slice(0,240));return 'LINKING';");
   mouse('mouseMoved', destination ?? points.target, true);
   return points;
 }
 
+startPreviewDiagnostics(evaluate);
 try {
   run('dev:cdp', 'method=Emulation.setFocusEmulationEnabled', 'params={"enabled":true}');
   const setup = evaluate(`const p=app.plugins.getPlugin('just-simple-planner');if(!p)throw Error('Planner not loaded');await p.openPlanner();const view=app.workspace.getLeavesOfType('just-simple-planner')[0].view.surface;const viewport=view.contentEl.querySelector('.jsp-scroll');const original={state:view.getState(),search:view.search,status:view.status,tasks:view.showTasks,left:viewport.scrollLeft,top:viewport.scrollTop};view.mode='board';view.collapsed=new Set();view.search='';view.status='all';view.showTasks=false;view.firstDay='2026-10-01';view.initialScroll=false;view.render();const source=[...p.entries.values()].find(e=>e.title==='Preparar los ejemplos del taller');const target=[...p.entries.values()].find(e=>e.title==='Preparar la estructura del artículo');if(!source||!target||!source.path.startsWith('Pruebas/Just Simple Planner/Entradas/')||!target.path.startsWith('Pruebas/Just Simple Planner/Entradas/'))throw Error('Named fixtures not found');if(source.next.includes(target.path))throw Error('Fixtures already connected; preserving them');const before=new Map();for(const entry of p.entries.values())before.set(entry.path,await app.vault.read(p.file(entry.path)));const q={p,view,viewport,source,target,before,original,commits:0,historyDepth:p.history.undoStack.length,count:p.entries.size};q.assert=(value,message)=>{if(!value)throw Error(message)};q.wait=async(fn)=>{for(let i=0;i<120;i++){if(fn())return;await new Promise(r=>setTimeout(r,25))}throw Error('Timed out waiting for connection')};q.card=entry=>[...view.contentEl.querySelectorAll('.jsp-card')].find(c=>c.dataset.path===entry.path);q.points=()=>{const card=q.card(source);const a=card.getBoundingClientRect(),h=card.querySelector('.jsp-connection-handle').getBoundingClientRect(),b=q.card(target).getBoundingClientRect();return {hover:{x:a.left+a.width/2,y:a.top+a.height/2},start:{x:h.left+h.width/3,y:h.top+h.height/2},target:{x:b.left+b.width/2,y:b.top+b.height/2},blank:{x:a.left+a.width/2,y:a.bottom+20}}};window.__jspConnectionsQA=q;viewport.scrollLeft=27*p.settings.dayWidth;viewport.scrollTop=0;return 'READY';`);
@@ -57,7 +67,9 @@ try {
   dragTo(); mouse('mouseReleased', json('q.points().target'));
   check('repeated drops do not duplicate links or history', `assert(p.entries.get(q.source.path).next.filter(path=>path===q.target.path).length===1,'Duplicate connection');assert(p.history.undoStack.length===q.depth,'Duplicate drop created history');`);
 
+  leavePreview();
   const menuPoint = json(`(()=>{const rect=q.card(q.source).querySelector('.jsp-card-menu').getBoundingClientRect();return {x:rect.left+rect.width/2,y:rect.top+rect.height/2};})()`);
+  mouse('mouseMoved', menuPoint);
   mouse('mousePressed', menuPoint); mouse('mouseReleased', menuPoint);
   check('the three-dot menu retains Connect to and Disconnect', `const menu=document.querySelector('.menu');assert(menu?.textContent.includes('Connect to'),'Connect to disappeared');assert(menu.textContent.includes('Disconnect'),'Disconnect disappeared');`);
   escape();
@@ -93,14 +105,18 @@ try {
   check('keyboard-accessible connector still opens the target picker', `assert([...document.querySelectorAll('input')].some(input=>input.placeholder==='Connect to an entry…'),'Target picker missing');`);
   escape();
   check('the fixture set and exact Markdown contents are preserved', `for(const [file,text] of q.before)assert(await app.vault.read(p.file(file))===text,'Changed fixture: '+file);assert(p.entries.size===q.count,'Entry count changed');`);
-  const errors = run('dev:errors');
-  if (!errors.includes('No errors captured.')) throw Error(`Obsidian errors during connection test: ${errors}`);
-  passed.push('no Obsidian errors during hover, drag and disconnect');
-  console.log('PASS no Obsidian errors during hover, drag and disconnect');
+  const hostWarnings = verifyNativeErrors(run, evaluate, true);
+  if (hostWarnings.length) console.log('HOST WARNINGS ' + JSON.stringify(hostWarnings));
+  passed.push('no unexpected Obsidian errors during hover, drag and disconnect');
+  console.log('PASS no unexpected Obsidian errors during hover, drag and disconnect');
   console.log(JSON.stringify({ vault: canonical, checks: passed.length, passed }, null, 2));
 } finally {
+  try {
   state("view.finishConnection(false,false);view.dragging=null;return 'CANCELLED';");
   run('dev:cdp', 'method=Input.dispatchMouseEvent', 'params={"type":"mouseReleased","x":700,"y":400,"button":"left","buttons":0}');
   console.log(evaluate(`const q=window.__jspConnectionsQA;if(q){q.view.finishConnection(false);while(q.p.history.undoStack.length>q.historyDepth){if(q.p.history.undoStack.at(-1).some(c=>c.path!==q.source.path))throw Error('Unexpected history outside the connection fixture');await q.p.history.undo()}for(const [path,text]of q.before)q.assert(await app.vault.read(q.p.file(path))===text,'Original not restored: '+path);const s=q.original;q.view.mode=s.state.mode;q.view.firstDay=s.state.firstDay;q.view.collapsed=new Set(s.state.collapsed);q.view.activeThread=s.state.activeThread;q.view.search=s.search;q.view.status=s.status;q.view.showTasks=s.tasks;q.view.initialScroll=false;q.view.render();q.viewport.scrollLeft=s.left;q.viewport.scrollTop=s.top;delete window.__jspConnectionsQA;}return 'Connection test state restored';`));
-  run('dev:cdp', 'method=Emulation.setFocusEmulationEnabled', 'params={"enabled":false}');
+  } finally {
+    try { stopPreviewDiagnostics(evaluate); }
+    finally { run('dev:cdp', 'method=Emulation.setFocusEmulationEnabled', 'params={"enabled":false}'); }
+  }
 }

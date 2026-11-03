@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { verifyNativeErrors } from './qa-preview-diagnostics.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const canonical = path.resolve(repo, '../../@Nexus-dev');
@@ -36,7 +37,7 @@ writeFileSync(path.join(outputDir, 'baseline.json'), JSON.stringify(Object.fromE
 writeFileSync(path.join(outputDir, 'settings-backup.log'), settings);
 evaluate('window.__jspExhaustiveQA={layout:app.workspace.getLayout()};return true;');
 const suites = process.argv.slice(2);
-if (!suites.length) suites.push('migration-button', 'bases', 'scheduling', 'spans', 'card-sizes', 'classic-ui', 'membership', 'index', 'pan', 'modifier-pan', 'connections', 'visibility');
+if (!suites.length) suites.push('migration-button', 'bases', 'scheduling', 'spans', 'card-sizes', 'classic-ui', 'membership', 'index', 'pan', 'modifier-pan', 'connections', 'visibility', 'removal', 'hover');
 const results = [];
 let failure;
 try {
@@ -59,9 +60,8 @@ try {
     });
     const count = [...output.matchAll(/"checks":\s*(\d+)/g)].at(-1)?.[1];
     if (!count) throw Error('Missing suite result: ' + suite);
-    const errors = run('dev:errors');
-    if (!errors.includes('No errors captured.')) throw Error(errors);
-    results.push({ suite, checks: Number(count), durationMs: Date.now() - start });
+    const hostWarnings = verifyNativeErrors(run, evaluate, suite === 'hover' || suite === 'connections');
+    results.push({ suite, checks: Number(count), durationMs: Date.now() - start, hostWarnings });
     // Close the previous suite's views before testing the next one. Restoring the
     // saved layout also prevents geometry checks from inheriting split panes.
     evaluate('await app.workspace.changeLayout(window.__jspExhaustiveQA.layout);return true;');

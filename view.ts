@@ -1,4 +1,4 @@
-import { ItemView, Component, MarkdownRenderer, Menu, Notice, Scope, setIcon, type App, type WorkspaceLeaf, type HoverParent, type HoverPopover } from 'obsidian';
+import { ItemView, Component, MarkdownRenderer, Menu, Notice, Platform, Scope, setIcon, type App, type WorkspaceLeaf, type HoverParent, type HoverPopover } from 'obsidian';
 import type JustSimplePlanner from './main';
 import type { PlannerController } from './controller';
 import { connected, spotlight, stackEntries, boardSpan, entryEnd, tasks, today, shiftDay, dayNumber, validDay, dateMoves, type Entry, type Thread } from './model';
@@ -14,7 +14,16 @@ type DragState = { path: string; entries: Map<string, Entry>; paths: Set<string>
 type ConnectionDrag = { pointerId: number; source: string; target: string | null; sourceCard: HTMLElement; targetCard: HTMLElement | null; startX: number; startY: number; x: number; y: number; moved: boolean };
 
 export class PlannerSurface extends Component implements HoverParent {
-  hoverPopover: HoverPopover | null = null;
+  private preview: HoverPopover | null = null;
+  get hoverPopover(): HoverPopover | null { return this.preview; }
+  set hoverPopover(value: HoverPopover | null) {
+    this.preview = value;
+    // Page preview may finish reading the note after a gesture/view change.
+    // Wait for native show() to finish before hiding and unloading its resources.
+    if (value && (this.dragging || this.linking || this.panning || !this.root?.isConnected || !this.scroll?.clientWidth)) {
+      queueMicrotask(() => { if (this.preview === value) this.closeHoverPreview(); });
+    }
+  }
   private root!: HTMLElement;
   private scroll!: HTMLElement;
   private stage!: HTMLElement;
@@ -167,11 +176,22 @@ export class PlannerSurface extends Component implements HoverParent {
   }
 
   onunload(): void {
+    this.closeHoverPreview();
     this.finishConnection(false, false);
     if (this.drawFrame) this.root.win.cancelAnimationFrame(this.drawFrame);
     if (this.renderComponent) { this.renderComponent.unload(); this.removeChild(this.renderComponent); }
     this.contentEl.removeClass('jsp-container');
     this.contentEl.empty();
+  }
+
+  private closeHoverPreview(): void {
+    const popover: (HoverPopover & { hide?: () => void }) | null = this.hoverPopover;
+    if (!popover) return;
+    // Native hide also clears its timer, target listeners and active-popover list.
+    // It is present at runtime but omitted from Obsidian's HoverPopover typings.
+    if (typeof popover.hide === 'function') popover.hide();
+    else popover.unload();
+    this.hoverPopover = null;
   }
 
   private button(parent: HTMLElement, label: string, icon: string, action: () => void): HTMLButtonElement {
@@ -230,6 +250,7 @@ export class PlannerSurface extends Component implements HoverParent {
       if (primary && (this.mode !== 'board' || (event.target as Element).closest('a, button, input, select, textarea, [contenteditable="true"]'))) return;
       event.preventDefault();
       event.stopPropagation();
+      this.closeHoverPreview();
       pointerId = event.pointerId;
       modifiedPrimary = primary;
       moved = false;
@@ -303,6 +324,8 @@ export class PlannerSurface extends Component implements HoverParent {
 
   render(): void {
     if (!this.root || this.dragging || this.panning || this.linking) return;
+    // Replacing/hiding an anchor can skip mouseout and leave onTarget stuck.
+    this.closeHoverPreview();
     // Hidden tabs report zero scroll geometry. Keep the last visible position
     // and apply pending data/state when the pane has a usable width again.
     if (!this.scroll.clientWidth) { this.renderPending = true; return; }
@@ -498,6 +521,7 @@ export class PlannerSurface extends Component implements HoverParent {
       handle.addEventListener('pointerdown', event => {
         if (event.button !== 0 || this.dragging || this.panning || this.linking) return;
         event.preventDefault(); event.stopPropagation();
+        this.closeHoverPreview();
         this.linking = { pointerId: event.pointerId, source: entry.path, target: null, sourceCard: card, targetCard: null, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, moved: false };
         this.root.addClass('jsp-connecting'); card.addClass('is-connection-source');
         this.connectionPreview = document.createElementNS(SVG, 'svg');
@@ -526,19 +550,28 @@ export class PlannerSurface extends Component implements HoverParent {
     });
     card.addEventListener('dblclick', event => {
       if ((event.target as HTMLElement).closest('a, button')) return;
-      event.stopPropagation(); this.plugin.editEntry(entry);
+      event.stopPropagation(); this.closeHoverPreview(); this.plugin.editEntry(entry);
     });
     card.addEventListener('contextmenu', event => { event.preventDefault(); this.entryMenu(event, entry); });
+    // Run before native child hover tracking, as Calendar does for note chips.
     card.addEventListener('mouseover', event => {
-      if (this.linking || this.panning || (!event.ctrlKey && !event.metaKey)) return;
+      const interactive = 'a, button, input, select, textarea, [contenteditable="true"]';
+      if (Platform.isMobile || this.dragging || this.linking || this.panning || event.buttons) return;
+      if ((event.target as Element).closest(interactive)) { this.closeHoverPreview(); return; }
+      const from = event.relatedTarget;
+      if (from && 'nodeType' in from && card.contains(from as Node)) {
+        const element = (from as Node).nodeType === 1 ? from as Element : (from as Node).parentElement;
+        if (!element?.closest(interactive)) return;
+      }
       this.app.workspace.trigger('hover-link', { event, source: VIEW_TYPE, hoverParent: this, targetEl: card, linktext: entry.path, sourcePath: entry.path });
-    });
+    }, true);
     if (this.mode === 'board' && (this.plugin.canMove?.(entry) ?? true)) {
       card.draggable = true;
       card.addEventListener('dragstart', event => {
         if (this.linking || this.panning || (event.target as HTMLElement).closest('a, button')) { event.preventDefault(); return; }
         const paths = event.shiftKey ? this.flowPaths([entry.path]) : this.selected.has(entry.path) ? new Set(this.selected) : new Set([entry.path]);
         if (!paths.size) { event.preventDefault(); return; }
+        this.closeHoverPreview();
         const rect = card.getBoundingClientRect();
         const dayOffset = end !== entry.date && event.clientX >= rect.left && event.clientX <= rect.right
           ? Math.max(0, Math.min(dayNumber(end) - dayNumber(entry.date), Math.floor((event.clientX - parent.getBoundingClientRect().left) / this.plugin.settings.dayWidth) - (dayNumber(entry.date) - dayNumber(this.firstDay)))) : 0;
@@ -666,6 +699,7 @@ export class PlannerSurface extends Component implements HoverParent {
   }
 
   private entryMenu(event: MouseEvent, entry: Entry): void {
+    this.closeHoverPreview();
     entry = this.plugin.entries.get(entry.path) ?? entry;
     const menu = new Menu();
     menu.addItem(item => item.setTitle('Edit entry').setIcon('pencil').onClick(() => this.plugin.editEntry(entry)));
@@ -678,7 +712,9 @@ export class PlannerSurface extends Component implements HoverParent {
     menu.addItem(item => item.setTitle('Spotlight').setIcon('focus').onClick(() => { this.focusPath = entry.path; this.render(); }));
     this.plugin.scheduleMenu?.(menu, entry);
     menu.addSeparator();
-    if (!this.plugin.basesMode) menu.addItem(item => item.setTitle('Remove note from planner…').setIcon('minus-circle').onClick(() => { void this.plugin.perform(() => this.plugin.reviewNote(this.plugin.file(entry.path), { remove: true })); }));
+    menu.addItem(item => item.setTitle('Remove note from planner…').setIcon('minus-circle')
+      .setDisabled(Boolean(this.plugin.basesMode) && this.app.metadataCache.getCache(entry.path)?.frontmatter?.planner_type !== 'entry')
+      .onClick(() => { void this.plugin.perform(() => this.plugin.reviewNote(this.plugin.file(entry.path), { remove: true })); }));
     menu.showAtMouseEvent(event);
   }
 
