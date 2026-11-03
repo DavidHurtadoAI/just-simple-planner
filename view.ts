@@ -1,4 +1,4 @@
-import { ItemView, Component, MarkdownRenderer, Menu, Notice, setIcon, type App, type WorkspaceLeaf, type HoverParent, type HoverPopover } from 'obsidian';
+import { ItemView, Component, MarkdownRenderer, Menu, Notice, Scope, setIcon, type App, type WorkspaceLeaf, type HoverParent, type HoverPopover } from 'obsidian';
 import type JustSimplePlanner from './main';
 import type { PlannerController } from './controller';
 import { connected, spotlight, stackEntries, boardSpan, entryEnd, tasks, today, shiftDay, dayNumber, validDay, dateMoves, type Entry, type Thread } from './model';
@@ -142,7 +142,20 @@ export class PlannerSurface extends Component implements HoverParent {
       for (const target of this.root.querySelectorAll('.is-note-drop-target')) target.removeClass('is-note-drop-target');
       for (const preview of this.root.querySelectorAll('.jsp-drop-preview')) preview.remove();
     });
-    this.registerDomEvent(this.root, 'keydown', event => this.onKey(event));
+    this.registerDomEvent(this.root, 'keydown', event => { if (!event.defaultPrevented) this.onKey(event); });
+    // Obsidian resolves global hotkeys before DOM bubbling (F2 renames a file).
+    // A focused planner needs a native scope so its handled keys take priority.
+    const scope = new Scope(this.app.scope);
+    let scopeActive = false;
+    const releaseScope = (): void => { if (scopeActive) { this.app.keymap.popScope(scope); scopeActive = false; } };
+    scope.register(null, null, event => {
+      if (!this.root.contains(event.target as Node | null)) return;
+      this.onKey(event);
+      if (event.defaultPrevented) { event.stopImmediatePropagation(); return false; }
+    });
+    this.registerDomEvent(this.root, 'focusin', () => { if (!scopeActive) { this.app.keymap.pushScope(scope); scopeActive = true; } });
+    this.registerDomEvent(this.root, 'focusout', event => { if (!this.root.contains(event.relatedTarget as Node | null)) releaseScope(); });
+    this.register(releaseScope);
     const observer = new ResizeObserver(() => {
       if (!this.scroll.clientWidth) { this.renderPending = true; return; }
       if (this.renderPending) this.render();
@@ -692,7 +705,7 @@ export class PlannerSurface extends Component implements HoverParent {
     const selected = [...this.selected].map(path => this.plugin.entries.get(path)).filter((entry): entry is Entry => !!entry);
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); void this.plugin.perform(() => event.shiftKey ? this.plugin.history.redo() : this.plugin.history.undo()); }
     else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); void this.plugin.perform(() => this.plugin.history.redo()); }
-    else if (event.key === 'Escape') { this.selected.clear(); this.focusPath = null; this.render(); }
+    else if (event.key === 'Escape') { event.preventDefault(); this.selected.clear(); this.focusPath = null; this.render(); }
     else if (selected.length === 1 && event.key === 'Tab' && !event.shiftKey) { event.preventDefault(); this.plugin.newEntry(shiftDay(selected[0].date, 1), selected[0].thread, selected[0].path); }
     else if (selected.length === 1 && (event.key === 'Enter' || event.key === 'F2')) { event.preventDefault(); this.plugin.editEntry(selected[0]); }
     else if (selected.length && (event.ctrlKey || event.metaKey) && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {

@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.5.4-4c819a)
+![Version](https://img.shields.io/badge/version-0.5.5-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -28,7 +28,7 @@ Cards with only a title and frontmatter use a shorter height, keeping the two-li
 
 > **Inspired by [Haftio](https://www.haftio.com/).** The original deserves clear credit. This is an independent Obsidian implementation. Read [the thank-you, the apology, and the story](#the-story-and-the-credit).
 
-**0.5.4 fixes hidden-tab position loss:** background updates retain the board's date window and scroll position, including Notebook. It also includes the 0.5.3 fix for the migration dialog's Create Base button. If you installed 0.5.2 or 0.5.3, update the same plugin; existing notes, settings and Base files are retained.
+**0.5.5 fixes keyboard priority inside Planner:** F2 opens the selected entry's editor even after another file was active. It also includes the hidden-tab position fix and the migration dialog's Create Base correction. Update the same plugin; existing notes, settings and Base files are retained.
 
 ## Bases planners and the classic-view transition
 
