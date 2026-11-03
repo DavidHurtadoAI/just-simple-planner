@@ -10,7 +10,7 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 
 ## Code and lifecycle
 
-The 0.4.0 changes were checked on 2026-10-31 with the official linter, package audit and native membership, indexing and connection suites. See [TESTING.md](../TESTING.md) for current evidence and limits.
+The 0.5.2 Bases transition was checked on 2026-11-03 with the official linter, package audit, 63 unit tests and 80 native Bases/scheduling/span/card/pan/connection checks. See [TESTING.md](../TESTING.md) for current evidence and limits.
 
 - `eslint-plugin-obsidianmd` recommended rules run with zero warnings in `npm run check` and GitHub Actions. Strict TypeScript and model tests run in the same check.
 - Runtime code uses the public Obsidian API and browser APIs. No Node.js or Electron imports, global debugging `app`, dynamic code execution or unbundled package dependencies.
@@ -19,6 +19,8 @@ The 0.4.0 changes were checked on 2026-10-31 with the official linter, package a
 - UI uses sentence case, theme variables and namespaced CSS. Inline values describe computed timeline geometry or user-selected colors. Commands have stable IDs and no default global hotkeys.
 - Settings are searchable through definitions on Obsidian 1.13+, with an imperative fallback for older supported versions. Creation paths are normalized and remain inside the vault.
 - Two English, vault-relative creation paths are storage locations only. Threads folder holds new thread notes; New entries folder holds newly created entries. Legacy base and child paths are combined without moving files. Existing marked notes are discovered anywhere; original metadata and bodies are preserved.
+- Those global settings and discovery belong to the retained, deprecated classic view. Bases uses the public registered-view/query API, per-view property selection/history and scoped body caches. Its native creation context supplies new-note locations; linked or explicit thread notes supply empty rows. It does not start the classic index merely by opening a Bases planner.
+- Migration writes only a new Base and missing parent folders. It compares the initial entries/thread metadata/connections, retains source notes/settings, rejects an existing destination and labels classic commands without changing their IDs. Deprecation is explicit in the banner, settings, review, README and bilingual guides; no removal date is set.
 - Settings autosave with inline validation, serialized saves and in-place synchronization. Property names remain configurable and reserved keys protected. Only mapping changes reset the index and history. Enrollment and removal use exact-snapshot Vault.process writes and Undo/Redo; external edits, renames and stale mappings reject the review without overwriting the note.
 
 ## Privacy, licensing and packaging

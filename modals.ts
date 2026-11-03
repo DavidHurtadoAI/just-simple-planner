@@ -1,13 +1,14 @@
 import { Modal, Setting, Notice, SuggestModal, type App } from 'obsidian';
-import type JustSimplePlanner from './main';
+import type { PlannerController } from './controller';
 import type { MembershipDraft } from './main';
 import { validDay, admissionFields, type Entry } from './model';
 
 export class EntryModal extends Modal {
   private saving = false;
-  constructor(app: App, private readonly plugin: JustSimplePlanner, private readonly options: { date: string; thread: string; previous?: string; entry?: Entry }) { super(app); }
+  constructor(app: App, private readonly plugin: PlannerController, private readonly options: { date: string; thread: string; previous?: string; entry?: Entry }) { super(app); }
   onOpen(): void {
     this.modalEl.addClass('jsp-entry-modal');
+    const generation = this.plugin.editGeneration;
     this.setTitle(this.options.entry ? 'Edit entry' : 'New entry');
     let title = this.options.entry?.title ?? '';
     let date = this.options.date;
@@ -32,6 +33,7 @@ export class EntryModal extends Modal {
         this.saving = true; button.setDisabled(true);
         void (async () => {
           try {
+            if (generation !== this.plugin.editGeneration) throw new Error('The view properties changed. Reopen the entry before saving. Your draft is still here.');
             const fields = { title: title.trim(), date, thread: thread ? thread.startsWith('text:') ? thread.slice(5) : this.plugin.link(thread) : '' };
             if (this.options.entry) await this.plugin.patch([{ path: this.options.entry.path, fields, body, expectedText: this.options.entry.snapshot, expectedBody: this.options.entry.body, expectedDate: this.options.entry.date }]);
             else await this.plugin.createEntry(title.trim(), date, thread, body, this.options.previous);
@@ -43,11 +45,11 @@ export class EntryModal extends Modal {
     });
     if (titleInput) (titleInput as HTMLInputElement).focus();
   }
-  onClose(): void { this.contentEl.empty(); }
+  onClose(): void { this.contentEl.empty(); this.plugin.onModalClosed?.(); }
 }
 
 export class ThreadModal extends Modal {
-  constructor(app: App, private readonly plugin: JustSimplePlanner) { super(app); }
+  constructor(app: App, private readonly plugin: PlannerController) { super(app); }
   onOpen(): void {
     this.setTitle('New thread');
     let title = ''; let color = 'blue'; let status = 'active'; let saving = false;
@@ -64,11 +66,11 @@ export class ThreadModal extends Modal {
       })();
     }));
   }
-  onClose(): void { this.contentEl.empty(); }
+  onClose(): void { this.contentEl.empty(); this.plugin.onModalClosed?.(); }
 }
 
 export class ConnectModal extends SuggestModal<Entry> {
-  constructor(app: App, private readonly plugin: JustSimplePlanner, private readonly source: Entry) { super(app); this.setPlaceholder('Connect to an entry…'); }
+  constructor(app: App, private readonly plugin: PlannerController, private readonly source: Entry) { super(app); this.setPlaceholder('Connect to an entry…'); }
   getSuggestions(query: string): Entry[] {
     return [...this.plugin.entries.values()].filter(entry => entry.path !== this.source.path && `${entry.title} ${entry.date}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())).sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
   }
@@ -78,7 +80,7 @@ export class ConnectModal extends SuggestModal<Entry> {
 
 export class MembershipModal extends Modal {
   private saving = false;
-  constructor(app: App, private readonly plugin: JustSimplePlanner, private readonly draft: MembershipDraft, private readonly remove: boolean) { super(app); }
+  constructor(app: App, private readonly plugin: PlannerController, private readonly draft: MembershipDraft, private readonly remove: boolean) { super(app); }
 
   onOpen(): void {
     this.modalEl.addClass('jsp-membership-modal');
@@ -133,5 +135,5 @@ export class MembershipModal extends Modal {
     update();
   }
 
-  onClose(): void { this.contentEl.empty(); }
+  onClose(): void { this.contentEl.empty(); this.plugin.onModalClosed?.(); }
 }

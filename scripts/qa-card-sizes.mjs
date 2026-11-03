@@ -25,15 +25,17 @@ function cleanup() {
 }
 if (process.argv.includes('--cleanup')) { cleanup(); console.log('QA fixtures archived; original notes unchanged.'); process.exit(0); }
 let completed = false;
+run('dev:debug', 'on');
+run('dev:cdp', 'method=Emulation.setFocusEmulationEnabled', 'params={"enabled":true}');
 try {
   const setup = evaluate(String.raw`
     await p.reloadIndex();await p.openPlanner();
-    const view=app.workspace.getLeavesOfType('just-simple-planner')[0].view;
+    const view=app.workspace.getLeavesOfType('just-simple-planner')[0].view.surface;
     const root=view.contentEl;
     const assert=(value,message)=>{if(!value)throw Error(message)};
     const wait=async(predicate)=>{for(let i=0;i<100;i++){if(predicate())return;await new Promise(r=>setTimeout(r,25))}throw Error('Timed out')};
     const card=name=>[...root.querySelectorAll('.jsp-card')].find(c=>c.dataset.path===q.folder+'/'+name+'.md');
-    const q=window.__jspCardSizesQA={view,root,assert,card,wait,folder:'Pruebas/Just Simple Planner/Tamaños QA',fixtures:[],before:new Map()};
+    const q=window.__jspCardSizesQA={view,root,assert,card,wait,folder:'Pruebas/Just Simple Planner/Tamaños QA/'+Date.now(),fixtures:[],before:new Map()};
     for(const item of [...p.entries.values(),...p.threads.values()])q.before.set(item.path,await app.vault.read(p.file(item.path)));
     const day=new Date();const date=day.getFullYear()+'-'+String(day.getMonth()+1).padStart(2,'0')+'-'+String(day.getDate()).padStart(2,'0');
     q.date=date;
@@ -72,5 +74,6 @@ try {
   completed = true;
 } finally {
   if (!completed || !process.argv.includes('--preview')) cleanup();
+  run('dev:cdp', 'method=Emulation.setFocusEmulationEnabled', 'params={"enabled":false}');
 }
 console.log(JSON.stringify({vault:canonical,checks:passed.length,passed},null,2));

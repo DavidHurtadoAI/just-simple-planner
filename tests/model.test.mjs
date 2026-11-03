@@ -52,6 +52,12 @@ test('empty and whitespace-only bodies use the short card; any Markdown keeps th
   for (const body of ['Texto', '[[Nota]]', '- [ ] Tarea', '![[Imagen.png]]']) assert.equal(cardHeight({ ...entry('a'), body }), 116);
 });
 
+test('Bases same-day card stacking can preserve the query sort without changing its input', () => {
+  const input = [entry('z'), entry('a'), entry('m')];
+  assert.deepEqual(stackEntries(input, false, true).map(({ entry, slot }) => [entry.path, slot]), [['z', 0], ['a', 1], ['m', 2]]);
+  assert.deepEqual(input.map(e => e.path), ['z', 'a', 'm']);
+});
+
 test('mixed card sizes pack each day without gaps left by the short cards or overlaps', () => {
   const short = entry('a');
   const full = { ...entry('b'), body: 'Contenido' };

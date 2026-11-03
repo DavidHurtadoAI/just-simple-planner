@@ -8,6 +8,7 @@ export interface Entry {
   next: string[];
   body: string;
   snapshot?: string;
+  occurrence?: { kind: 'single' | 'repeat' | 'additional'; sourceDate: string; end: string; warnings: string[]; limited: boolean };
 }
 
 export interface Thread {
@@ -92,12 +93,41 @@ export function cardHeight(entry: Entry, compact = false): number {
   return compact ? 24 : entry.body.trim() ? 116 : 68;
 }
 
-export function stackEntries(entries: Entry[], compact = false): { entry: Entry; slot: number; top: number; height: number }[] {
-  const occupied = new Map<string, { slot: number; top: number }>();
-  return [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title) || a.path.localeCompare(b.path)).map(entry => {
-    const { slot, top } = occupied.get(entry.date) ?? { slot: 0, top: 0 };
+export function entryEnd(entry: Entry): string {
+  const end = entry.occurrence?.end;
+  return validDay(end) && end >= entry.date ? end : entry.date;
+}
+
+/** End dates are inclusive; only the drawing is clipped to the loaded board. */
+export function boardSpan(entry: Entry, first: string, last: string): { start: string; end: string; days: number; continuesBefore: boolean; continuesAfter: boolean } | null {
+  const end = entryEnd(entry);
+  if (entry.date > last || end < first) return null;
+  const start = entry.date < first ? first : entry.date;
+  const clippedEnd = end > last ? last : end;
+  return { start, end: clippedEnd, days: dayNumber(clippedEnd) - dayNumber(start) + 1, continuesBefore: entry.date < first, continuesAfter: end > last };
+}
+
+export function stackEntries(entries: Entry[], compact = false, queryOrder = false): { entry: Entry; slot: number; top: number; height: number }[] {
+  const occupied: { start: string; end: string; top: number; height: number }[] = [];
+  const days = new Map<string, { slot: number; top: number }>();
+  const ordered = queryOrder ? [...entries] : [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title) || a.path.localeCompare(b.path));
+  const singleDays = ordered.every(entry => entryEnd(entry) === entry.date);
+  return ordered.map(entry => {
     const height = cardHeight(entry, compact);
-    occupied.set(entry.date, { slot: slot + 1, top: top + height + (compact ? 4 : 16) });
+    const gap = compact ? 4 : 16;
+    if (singleDays) {
+      const { top, slot } = days.get(entry.date) ?? { top: 0, slot: 0 };
+      days.set(entry.date, { top: top + height + gap, slot: slot + 1 });
+      return { entry, slot, top, height };
+    }
+    const end = entryEnd(entry);
+    const overlaps = occupied.filter(item => item.start <= end && item.end >= entry.date).sort((a, b) => a.top - b.top);
+    let top = 0; let slot = 0;
+    for (const item of overlaps) {
+      if (top + height + gap <= item.top) break;
+      if (top < item.top + item.height + gap) { top = item.top + item.height + gap; slot++; }
+    }
+    occupied.push({ start: entry.date, end, top, height });
     return { entry, slot, top, height };
   });
 }

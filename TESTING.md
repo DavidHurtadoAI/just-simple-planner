@@ -1,5 +1,58 @@
 # Validation
 
+## 0.5.2 public release preparation — 2026-11-03
+
+The consolidated public release includes the Bases transition and both scheduling/rendering corrections below. The final source passes `npm run check`: zero-warning official lint, strict TypeScript, 63 unit tests, production bundling and package audit. The installable build is installed and verified through the central installer in `@Nexus-dev`.
+
+All six native suites pass again on the release build: 12 spans, 15 scheduling, 24 Bases transition, seven card-size, seven pan and fifteen trusted-input connection checks, for 80 in-app checks. Original notes and classic settings are compared with snapshots; the Obsidian error buffer is empty.
+
+Seven new screenshots were captured directly from Obsidian with fictional Spanish notes: Bases board, separate planners, multi-day source properties, Optional scheduling, Notebook/tasks, the classic deprecation banner and migration review. `scripts/capture-bases-release.mjs` guards the canonical vault, retains its examples as archived, checks original notes/settings and restores the saved workspace layout. README, release notes and the English/Spanish migration guides explain the same-plugin transition, the retained classic view without a removal date, additive migration, query/creation differences and scheduling limits. Relative documentation/image links and the exact release tag/notes file are checked before publication. GitHub Actions runs the source checks again, then builds and attests/verifies the three release assets.
+
+## 0.5.2 local multi-day rendering correction — 2026-11-03
+
+The configured End date now extends a card through its inclusive last day. Interval packing accounts for the entire range, variable card heights, the Base's order and folded rows. Ongoing notes and repeated occurrences are projected when any part overlaps the loaded window; only their drawing is clipped. Notebook retains ordinary historical notes and displays their full ranges. Single-day boards keep their original per-day packing path.
+
+`npm run check` passes lint, strict TypeScript, 63 unit tests, production bundling and package validation. Eight new tests cover inclusive columns, mixed-height collisions, Base order, compact rows, board clipping, invalid ends, ongoing ranges, repeated durations and historical Notebook ranges.
+
+`node scripts/qa-spans.mjs` passes 12 in-app scenarios: two-column cards with the correct height; overlapping spans; both board edges; repeated durations; malformed ends and separate additional days; connection geometry; dragging from the second day; dragging a clipped range; connected-flow moves with exact undo/redo; compact rows; Notebook/tasks; and clearing/remapping the End date selector without rewriting the note. Written timestamps and UTC offsets survive moves. Spanish fixtures are additive and retained as archived, and every original note and the classic settings file are compared with their pre-test bytes. The CLI preparation is split into small calls because oversized Windows CLI evaluations can return no result.
+
+The final installed build also passes all 68 existing in-app scheduling/Bases/card-size/pan/connection checks (80 including the new span suite). The connection driver presses inside the connector and chooses an exposed line segment, so intersecting arrows or pane boundaries cannot redirect the test; cleanup verifies exact original bytes even after a failed gesture. Card-size fixtures now use timestamped folders so a date change cannot overwrite yesterday's fixtures.
+
+The user's actual "Preparar la publicación" card was reopened and visually inspected in Obsidian: it occupies November 3 and 4 as one 260 px card at the Compact day width. All 25 original entry/thread files and classic settings match their pre-QA snapshots. The Obsidian error buffer is empty. These checks preceded the public release preparation documented above.
+
+## 0.5.1 local scheduling correction — 2026-11-02
+
+Optional scheduling now projects repeat and additional dates in Bases planners. The 0.5.0 main-day-only limitation below is superseded. Every appearance retains one source file, one task set and note-level connections; classic scheduling behavior is unchanged. The user-created weekly meeting is retained as originally written. No GitHub publication was made.
+
+`npm run check` covers 55 unit tests, strict TypeScript, lint, the production bundle and package audit. Twelve scheduling tests cover weekly windows beyond the anchor, repeat-until/exclusions, month/year clamping, malformed values, additional-date deduplication, durations, long-duration projection and Notebook history.
+
+`node scripts/qa-scheduling.mjs` passes 15 scenarios in actual Obsidian: weekly and additional-date cards, shared selection, note-level graph anchors, connections from/to later appearances, move guards, original-date editing, Notebook/tasks, folding, both schedule editors and exact undo. Concurrent body edits survive schedule saves; concurrent schedule edits reject Save and retain the draft. Malformed limits warn, removing a mapping never rewrites the note, Cancel never writes, and closing a Base closes its schedule editor. Timestamped Spanish fixtures are retained as archived; original notes and classic settings are checked byte for byte. The Obsidian error buffer is empty.
+
+The final installed build also passes the 24 Bases integration scenarios, seven card-size checks, seven pan checks and fifteen connection checks, including trusted Chromium mouse input. Native screenshots were inspected for the user's weekly note on a later Monday and the expanded Optional scheduling group. All 25 entry/thread source files match the pre-QA snapshot, including the user's existing end-date edit; classic settings are unchanged. The new scheduling projection is independent of Calendar; that plugin is not modified or required.
+
+## 0.5.0 local Bases transition — 2026-11-02
+
+This is a local preview; no GitHub push, tag or release was made. The central installer installs and verifies the same plugin ID in the canonical `@Nexus-dev` vault, preserving `data.json` and backing up replaced assets.
+
+`npm run check` passes official lint with zero warnings, strict TypeScript, 43 unit tests, the production bundle and package audit. Tests cover migration configuration and order-independent graph/thread comparison, no copied note bodies or folder search filters, datetime/range preservation, invalid dates, and Base-sorted same-day stacking as well as the existing model/history/settings cases.
+
+`node scripts/qa-bases.mjs` passes 24 scenarios in actual Windows desktop Obsidian 1.15.0. It guards the canonical path, creates additive Spanish fixtures in timestamped `Pruebas/Just Simple Planner/Transición Bases QA/` folders, retains them as `qa-archived`, and checks original note bytes and the classic settings file before finishing. Coverage includes:
+
+- Migration of the 20-entry, four-thread demo, verification of connections/thread metadata, empty rows, refusal to overwrite an existing Base or traverse outside the vault, and cancelling the review.
+- Two simultaneous Base queries, unmarked selected notes, independent property mappings and histories, and no classic discovery while only Bases planners are used.
+- Short/full cards, Markdown body search, Notebook, task rail, folding, exact undo/redo and complete-flow drag through the shared DOM surface.
+- Native Bases creation of dated entries with a body and a connected continuation, and thread notes retained as empty rows. Folder selection follows the Base rather than the classic settings.
+- Preserved written times, UTC offsets and end-date durations; refusal of configured repeating-schedule moves and computed-date writes.
+- Stale snapshot rejection, refusal to edit outside the query, outside-connection indicators and refusal of incomplete-flow moves.
+- Concurrent edits through a second planner: undo rejects the conflict, and ordered undos restore the exact original Markdown.
+- Invalid configuration displayed in an empty Base, old editor drafts retained after mapping changes, closed-session refusal, and saved mapping/folding/scroll position after closing and reopening the Base.
+
+Classic regression suites also pass: seven card-size checks, seven pan checks and fifteen connection checks. Connections include trusted Chromium pointer/keyboard events through the official CLI; the captured Obsidian error buffer is empty. These scripts now reach the shared surface through the retained classic workspace view. Focus emulation is enabled only for automation and restored afterward.
+
+Native screenshots from Obsidian's CLI were inspected for the Bases board, Notebook/task rail and the classic transition banner. The final development vault contains `Pruebas/Just Simple Planner/Planner - Bases para probar.base` and a Spanish testing guide. All 24 original entry/thread Markdown files also match a baseline saved before the first migration attempt. No original notes or classic settings were moved, renamed or rewritten.
+
+Physical mobile/touch behavior, older Obsidian versions and very large vaults have not been validated. The new view represents one card per note, at its main day; occurrence-specific graph nodes are outside this preview. End dates and schedule protection apply to properties explicitly selected in the Base view.
+
 ## README drag-and-drop recording — 2026-11-01
 
 The README's GIF was recorded in desktop Obsidian 1.15.0 with the installed 0.4.1 plugin in the canonical `@Nexus-dev` vault. A fictional `Pruebas/Notas dispersas/Reunión con Aurora.md` note starts without `planner_type`, outside the plugin's creation folders. The recording starts a real file-explorer drag using trusted Chromium mouse input, intercepts the drag data produced by Obsidian, drops onto the course thread, reviews the unchanged date and proposed properties, clicks Add to planner, and shows the new card alongside the original explorer file.
