@@ -36,6 +36,8 @@ export class PlannerSurface extends Component implements HoverParent {
   private notebookDate = today();
   private initialScroll = true;
   private restoredScroll: { left: number; top: number } | null = null;
+  private visibleScroll: { left: number; top: number } | null = null;
+  private renderPending = false;
   private scrolling = false;
   private panning = false;
   private dragging: DragState | null = null;
@@ -56,7 +58,10 @@ export class PlannerSurface extends Component implements HoverParent {
   getDisplayText(): string { return 'Just Simple Planner'; }
   getIcon(): string { return PLANNER_ICON; }
 
-  getState(): Record<string, unknown> { return { mode: this.mode, firstDay: this.firstDay, collapsed: [...this.collapsed], activeThread: this.activeThread, search: this.search, status: this.status, showTasks: this.showTasks, scrollLeft: this.scroll?.scrollLeft ?? 28 * this.plugin.settings.dayWidth, scrollTop: this.scroll?.scrollTop ?? 0 }; }
+  getState(): Record<string, unknown> {
+    const position = this.restoredScroll ?? (!this.scroll?.clientWidth ? this.visibleScroll : null);
+    return { mode: this.mode, firstDay: this.firstDay, collapsed: [...this.collapsed], activeThread: this.activeThread, search: this.search, status: this.status, showTasks: this.showTasks, scrollLeft: position?.left ?? this.scroll?.scrollLeft ?? 28 * this.plugin.settings.dayWidth, scrollTop: position?.top ?? this.scroll?.scrollTop ?? 0 };
+  }
   async setState(state: Record<string, unknown>): Promise<void> {
     if (state.mode === 'board' || state.mode === 'notebook') this.mode = state.mode;
     if (validDay(state.firstDay)) this.firstDay = state.firstDay;
@@ -138,7 +143,11 @@ export class PlannerSurface extends Component implements HoverParent {
       for (const preview of this.root.querySelectorAll('.jsp-drop-preview')) preview.remove();
     });
     this.registerDomEvent(this.root, 'keydown', event => this.onKey(event));
-    const observer = new ResizeObserver(() => this.queueEdges());
+    const observer = new ResizeObserver(() => {
+      if (!this.scroll.clientWidth) { this.renderPending = true; return; }
+      if (this.renderPending) this.render();
+      this.queueEdges();
+    });
     observer.observe(this.scroll);
     this.register(() => observer.disconnect());
     this.render();
@@ -281,11 +290,16 @@ export class PlannerSurface extends Component implements HoverParent {
 
   render(): void {
     if (!this.root || this.dragging || this.panning || this.linking) return;
+    // Hidden tabs report zero scroll geometry. Keep the last visible position
+    // and apply pending data/state when the pane has a usable width again.
+    if (!this.scroll.clientWidth) { this.renderPending = true; return; }
     const active = this.root.doc.activeElement as HTMLElement | null;
     const focusedPath = active?.closest<HTMLElement>('.jsp-card')?.dataset.path;
     const focusedDate = active?.closest<HTMLElement>('.jsp-card')?.dataset.date;
     this.selected = new Set([...this.selected].filter(path => this.plugin.entries.has(path)));
-    const left = this.scroll.scrollLeft; const top = this.scroll.scrollTop;
+    const position = this.renderPending ? this.visibleScroll : null;
+    const left = position?.left ?? this.scroll.scrollLeft; const top = position?.top ?? this.scroll.scrollTop;
+    this.renderPending = false;
     this.scrolling = true;
     if (this.renderComponent) { this.renderComponent.unload(); this.removeChild(this.renderComponent); }
     this.renderComponent = this.addChild(new Component());
@@ -334,7 +348,11 @@ export class PlannerSurface extends Component implements HoverParent {
     this.footer.title = this.plugin.scheduleNotice ?? '';
   }
 
-  private persistState(): void { if (this.saveState) this.saveState(); else this.app.workspace.requestSaveLayout(); }
+  private persistState(): void {
+    if (!this.scroll.clientWidth) return;
+    this.visibleScroll = { left: this.scroll.scrollLeft, top: this.scroll.scrollTop };
+    if (this.saveState) this.saveState(); else this.app.workspace.requestSaveLayout();
+  }
 
   private color(row: Thread): string {
     return /^(red|orange|yellow|green|cyan|blue|purple|pink)$/.test(row.color) ? `var(--color-${row.color})` : /^#[0-9a-f]{6}$/i.test(row.color) ? row.color : 'var(--color-blue)';
@@ -684,6 +702,7 @@ export class PlannerSurface extends Component implements HoverParent {
   }
 
   private onScroll(): void {
+    if (!this.scroll.clientWidth) { this.renderPending = true; return; }
     if (this.linking) { this.updateConnection(); return; }
     if (this.scrolling || this.dragging || this.panning) return;
     if (this.mode !== 'board') { this.persistState(); return; }

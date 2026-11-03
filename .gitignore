@@ -4,3 +4,4 @@ main.js
 qa/*.png
 qa/*.log
 qa/drag-demo-*/
+qa/exhaustive-*/
