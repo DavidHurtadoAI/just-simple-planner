@@ -79,7 +79,9 @@ Use **New entry** and **New thread** inside the planner for its editor and conne
 
 **Can I keep using classic?** Yes, through Open classic planner. No reverse migration is necessary for the original classic notes. A newly selected unmarked note, a datetime date, a different property mapping or a repeated appearance in Bases need not appear in classic, whose original membership/date rules still apply.
 
-**Does Remove note from classic planner exclude it from Bases?** Only if that Base's filter depends on the removed marker. For other queries, change the Base filter. File-explorer membership actions and global creation-folder settings are labeled classic because that is their scope.
+**How do I remove a card while keeping its note?** Use **Remove note from planner…** from the card's right-click or three-dot menu in either layout. It removes only `planner_type: entry`; the note, date, body, thread and connections remain. Undo/Redo in that open planner restore/remove the marker, even after the card leaves its query. The operation is disabled for unmarked cards. A stale review or an external edit is rejected rather than overwritten.
+
+**Which planners lose the card?** Every Base whose filter depends on the shared marker, plus classic. For the usual setup, select **All views → Any of the following are true → planner_type is entry OR planner_type is thread**; migration creates that filter. A custom query selecting unmarked notes can still show the note after removal. In that case adjust the Base filter. File-explorer membership actions and global creation-folder settings remain labeled classic.
 
 **Can I undo a newly created note?** Creation is not undone by deleting the file. Ordinary edits, connections, tasks, moves and schedule-list changes have exact-snapshot undo/redo within their open view. History is cleared on reload, and property-mapping changes invalidate the old history and old editor saves.
 
