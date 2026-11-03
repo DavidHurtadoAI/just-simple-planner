@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3 — 2026-11-03
+
+- Fix the migration dialog's Create Base button. Version 0.5.2 removed its DOM disabled attribute after reviewing, but Obsidian's ButtonComponent still considered it disabled and ignored clicks. Update the component state through its public API when reviewing, creating and recovering from an error.
+- Reconcile removed notes when classic discovery resumes after being paused. Stale cached entries can no longer inflate the migration review and prevent its initial verification.
+- Add UI regression coverage that opens migration through the classic banner and the Bases command, clicks the actual dialog controls, and verifies the created Base. Cover Refresh review, duplicate/invalid paths, a stale review, retry and repeated clicks while retaining the original notes/settings.
+
 ## 0.5.2 — 2026-11-03
 
 First public release of the Bases transition. The unpublished 0.5.0 and 0.5.1 development previews are included here.

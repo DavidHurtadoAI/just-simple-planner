@@ -2,6 +2,8 @@
 
 [Guía en español](MIGRACION.es.md) · [README](../README.md)
 
+**Use 0.5.3 or later for migration.** The Create Base button in 0.5.2 could look enabled while ignoring clicks. Update the same plugin from the [latest release](https://github.com/DavidHurtadoAI/just-simple-planner/releases/latest); your notes and classic settings remain in place.
+
 ## What is deprecated?
 
 **The standalone classic view is deprecated. Just Simple Planner itself is not.** Version 0.5.2 keeps both ways of opening a planner in the same plugin, with the same plugin ID. There is no replacement plugin to install and no note-format conversion to perform.

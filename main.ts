@@ -288,6 +288,12 @@ export default class JustSimplePlanner extends Plugin {
       const paths = this.indexDiscovered ? this.knownPaths() : await this.discoverPlannerPaths();
       if (this.stopping) return;
       if (generation !== this.indexGeneration) { this.indexPending = true; continue; }
+      if (!this.indexDiscovered) for (const path of this.knownPaths()) if (!paths.has(path)) {
+        const file = this.app.vault.getAbstractFileByPath(path);
+        // Metadata events are paused with classic. Reconcile removals on resume,
+        // while retaining notes newly enrolled during the cooperative scan.
+        if (!(file instanceof TFile) || !this.hasPlannerMetadata(file)) this.forget(path);
+      }
       this.indexDiscovered = true;
       for (const path of paths) {
         if (this.stopping) return;
