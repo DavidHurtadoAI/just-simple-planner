@@ -1,5 +1,11 @@
 # Validation
 
+## 0.5.5 native keyboard priority — 2026-11-03
+
+The combined native battery exposed an F2 conflict that isolated DOM-key tests missed: after a Base was active, Obsidian's global F2 handler opened Rename for that file before the Planner's bubbling listener received the event. A focused Planner now pushes a native Obsidian keymap scope for its existing keyboard actions and releases it on focus exit/unload. Already handled keys are not dispatched again by the bubbling listener. Input/button/link handling continues through ordinary Obsidian routing.
+
+The classic editor regression activates its leaf and sends a trusted Chromium F2. The visibility suite adds trusted F2 in a Bases planner and then outside/after closing Planner, checking that Obsidian's file-rename behavior is restored without renaming the fixture. The complete battery is now **152 native checks** (eight visibility checks; the other counts in the table below are unchanged), plus the 63 unit tests and source/package checks. No physical mobile/touch validation is claimed.
+
 ## 0.5.4 expanded regression and hidden-tab correction — 2026-11-03
 
 The expanded regression reproduced another runtime issue on 0.5.3: updating a note while its Base tab was hidden saved `scrollLeft: 0` instead of the previously visible 4200 px position. Reopening or revealing the tab could then move its date window. The shared surface now defers rendering while its viewport has no width, retains its last visible scroll position, and applies pending data/restored state when ResizeObserver reports a visible pane. Hidden scroll events cannot extend the date window or overwrite the saved position.
@@ -23,7 +29,7 @@ The expanded regression reproduced another runtime issue on 0.5.3: updating a no
 
 Run `node scripts/qa-exhaustive.mjs` with Obsidian's CLI available and `@Nexus-dev` open. Optional positional arguments select suites, for example `node scripts/qa-exhaustive.mjs visibility migration-button`. The runner snapshots every pre-existing Markdown/Base file's SHA-256, checks original Markdown and the settings file after the run, restores the saved workspace layout and records results under ignored `qa/exhaustive-*/` folders. Existing Base file rewrites are reported separately because native view-state autosave can update them. It never repairs an unexpected source-note change by overwriting it. Fixtures are additive, timestamped and retained as archived notes.
 
-The older index/membership drivers now use the current baseline rather than a fixed 20-entry demo. The new classic UI suite replaces the old fixed-demo smoke assumptions for this battery. Dialog checks wait for Obsidian's closing transition before sending the next keyboard action. Each suite checks the native error buffer; focus emulation is disabled and the workspace restored at the end. This is desktop integration and trusted-input coverage; physical mobile/touch and older Obsidian versions have not been validated.
+The older index/membership drivers now use the current baseline rather than a fixed 20-entry demo. The new classic UI suite replaces the old fixed-demo smoke assumptions for this battery. Dialog checks wait for Obsidian's closing transition before sending the next keyboard action. The classic editor test explicitly activates its workspace leaf and sends trusted Chromium F2 input, so it does not depend on synthetic keyboard routing or the previously active Base. Each suite checks the native error buffer; focus emulation is disabled and the workspace restored at the end. This is desktop integration and trusted-input coverage; physical mobile/touch and older Obsidian versions have not been validated.
 
 ## 0.5.3 migration-button correction — 2026-11-03
 
