@@ -1,5 +1,30 @@
 # Validation
 
+## 0.5.4 expanded regression and hidden-tab correction — 2026-11-03
+
+The expanded regression reproduced another runtime issue on 0.5.3: updating a note while its Base tab was hidden saved `scrollLeft: 0` instead of the previously visible 4200 px position. Reopening or revealing the tab could then move its date window. The shared surface now defers rendering while its viewport has no width, retains its last visible scroll position, and applies pending data/restored state when ResizeObserver reports a visible pane. Hidden scroll events cannot extend the date window or overwrite the saved position.
+
+`npm run check` passes all 63 unit tests, strict TypeScript, official lint with zero warnings, the production build and package checks. Native testing uses the installed build in the canonical Windows desktop `@Nexus-dev` vault. The complete battery has 150 checks across twelve suites:
+
+| Suite | Checks | Coverage |
+| --- | ---: | --- |
+| Migration button | 9 | Banner/command, review, retry/error paths, repeated activation, paused index and a trusted Chromium mouse click on Create Base |
+| Bases | 24 | Migration, separate queries/mappings/histories, native creation, graph scope, edit conflicts, persistence and closed sessions |
+| Scheduling | 15 | Repetition, limits/exceptions, additional dates, shared note identity, schedule editors and concurrent edits |
+| Spans | 12 | Inclusive end dates, overlapping/clipped ranges, graph geometry, drag offsets, durations and exact undo |
+| Card sizes | 7 | Empty/full bodies, complete filename fallback, packing, arrows, folding and Notebook |
+| Classic UI | 12 | Actual editor controls, cancellation, keyboard editing/moves/undo/redo, multiselection, Tab continuation, search, Notebook, tasks and stale drafts |
+| Membership/settings | 18 | Note enrollment/removal, calendar dates, custom properties, creation destinations, autosave and conflict guards |
+| Classic index | 12 | One discovery pass, incremental changes, folder moves, opt-in/out, schema reset and stale-read races |
+| Middle pan | 7 | Direction, cancellation, defaults, wheel behavior, card drag and unchanged Markdown |
+| Modifier pan | 13 | Trusted Ctrl/Cmd mouse input, selection, jitter, movement, release, buttons and blur |
+| Connections | 15 | Trusted hover/drag, exposed line/widget hit testing, disconnect/undo, cancellation and accessible picker |
+| Visibility | 6 | Hidden updates, reveal, repeated tab switches, hidden close/reopen, pending restoration and Notebook vertical position |
+
+Run `node scripts/qa-exhaustive.mjs` with Obsidian's CLI available and `@Nexus-dev` open. Optional positional arguments select suites, for example `node scripts/qa-exhaustive.mjs visibility migration-button`. The runner snapshots every pre-existing Markdown/Base file's SHA-256, checks original Markdown and the settings file after the run, restores the saved workspace layout and records results under ignored `qa/exhaustive-*/` folders. Existing Base file rewrites are reported separately because native view-state autosave can update them. It never repairs an unexpected source-note change by overwriting it. Fixtures are additive, timestamped and retained as archived notes.
+
+The older index/membership drivers now use the current baseline rather than a fixed 20-entry demo. The new classic UI suite replaces the old fixed-demo smoke assumptions for this battery. Dialog checks wait for Obsidian's closing transition before sending the next keyboard action. Each suite checks the native error buffer; focus emulation is disabled and the workspace restored at the end. This is desktop integration and trusted-input coverage; physical mobile/touch and older Obsidian versions have not been validated.
+
 ## 0.5.3 migration-button correction — 2026-11-03
 
 Reproduced the 0.5.2 failure by opening the review, filling a new QA path and clicking the actual Create Base DOM control: it looked enabled, but no creation ran. The ButtonComponent had been disabled through its API and re-enabled only by removing the HTML attribute, leaving its internal disabled state set. All migration-button state changes now use ButtonComponent.setDisabled.
