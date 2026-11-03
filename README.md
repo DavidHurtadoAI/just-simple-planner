@@ -7,7 +7,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.5.2-4c819a)
+![Version](https://img.shields.io/badge/version-0.5.3-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -27,6 +27,8 @@ Your work has a past, an unfinished middle, and a next step. Just Simple Planner
 Cards with only a title and frontmatter use a shorter height, keeping the two-line title, note menu and continuation arrow. Add Markdown content to return to the normal preview height; blank lines alone do not count as content. Entries on the same day stack using their actual heights.
 
 > **Inspired by [Haftio](https://www.haftio.com/).** The original deserves clear credit. This is an independent Obsidian implementation. Read [the thank-you, the apology, and the story](#the-story-and-the-credit).
+
+**0.5.3 fixes the migration dialog:** the Create Base button now responds after the review. If you installed 0.5.2, update the same plugin to migrate; existing notes and settings are retained.
 
 ## Bases planners and the classic-view transition
 

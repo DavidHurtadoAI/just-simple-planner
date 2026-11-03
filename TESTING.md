@@ -1,5 +1,13 @@
 # Validation
 
+## 0.5.3 migration-button correction — 2026-11-03
+
+Reproduced the 0.5.2 failure by opening the review, filling a new QA path and clicking the actual Create Base DOM control: it looked enabled, but no creation ran. The ButtonComponent had been disabled through its API and re-enabled only by removing the HTML attribute, leaving its internal disabled state set. All migration-button state changes now use ButtonComponent.setDisabled.
+
+`npm run check` passes the existing 63 unit tests, official lint, strict TypeScript, production bundle and package audit. `node scripts/qa-migration-button.mjs` adds eight native UI scenarios that activate the classic banner and command, then click the actual dialog controls rather than call the creation helper. They cover initial creation and verification, no classic view open, Refresh review, existing and invalid paths with retry, a changed-note review requiring refresh, and repeated clicks. Original notes/settings and workspace layout are checked/restored; the fixture and created Bases are retained. The UI suite also checks resuming classic discovery after a note was unenrolled while monitoring was paused. Fresh discovery now removes those stale cached entries before the migration review. The 24 existing Bases integration checks also pass on the installed build.
+
+The regression uses DOM button activation through the official Obsidian CLI; it does not claim physical mouse/touch coverage. The error buffer is empty. The earlier 0.5.2 suite verified the creation helper and cancellation but missed this disabled-component behavior in the primary button.
+
 ## 0.5.2 public release preparation — 2026-11-03
 
 The consolidated public release includes the Bases transition and both scheduling/rendering corrections below. The final source passes `npm run check`: zero-warning official lint, strict TypeScript, 63 unit tests, production bundling and package audit. The installable build is installed and verified through the central installer in `@Nexus-dev`.

@@ -2,6 +2,8 @@
 
 [English guide](MIGRATION.md) · [README](../README.md)
 
+**Usa 0.5.3 o posterior para migrar.** En 0.5.2, Create Base podía parecer habilitado e ignorar los clics. Actualiza el mismo plugin desde la [última versión](https://github.com/DavidHurtadoAI/just-simple-planner/releases/latest); las notas y los ajustes clásicos se conservan.
+
 ## Qué se depreca y qué sigue disponible
 
 **Se depreca la vista clásica independiente, no el plugin Just Simple Planner.** La versión 0.5.2 incluye ambas infraestructuras dentro del mismo plugin, con el mismo identificador. No hay que instalar otro plugin, exportar las notas ni convertir su formato.
