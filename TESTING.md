@@ -4,7 +4,7 @@
 
 The combined native battery exposed an F2 conflict that isolated DOM-key tests missed: after a Base was active, Obsidian's global F2 handler opened Rename for that file before the Planner's bubbling listener received the event. A focused Planner now pushes a native Obsidian keymap scope for its existing keyboard actions and releases it on focus exit/unload. Already handled keys are not dispatched again by the bubbling listener. Input/button/link handling continues through ordinary Obsidian routing.
 
-The classic editor regression activates its leaf and sends a trusted Chromium F2. The visibility suite adds trusted F2 in a Bases planner and then outside/after closing Planner, checking that Obsidian's file-rename behavior is restored without renaming the fixture. The complete battery is now **152 native checks** (eight visibility checks; the other counts in the table below are unchanged), plus the 63 unit tests and source/package checks. No physical mobile/touch validation is claimed.
+The classic editor regression activates its leaf and sends a trusted Chromium F2. The visibility suite adds trusted F2 in a Bases planner and then outside/after closing Planner, checking that it no longer opens a Planner editor. Outside behavior follows the active Obsidian context and its hotkeys; if the host opens Rename for the fixture, the test cancels it. The complete battery is now **152 native checks** (eight visibility checks; the other counts in the table below are unchanged), plus the 63 unit tests and source/package checks. No physical mobile/touch validation is claimed.
 
 ## 0.5.4 expanded regression and hidden-tab correction — 2026-11-03
 
