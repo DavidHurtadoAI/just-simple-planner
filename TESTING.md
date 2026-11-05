@@ -1,5 +1,17 @@
 # Validation
 
+## Illustrated tutorial — 2026-11-05
+
+The English [tutorial](docs/TUTORIAL.md) has 16 real desktop Obsidian 1.15.1 captures, a five-entry beginner Base, a three-entry scheduling Base, and a separate empty Base template. The downloadable ZIP contains 13 ordinary Markdown/Base files and matches its source under `examples/tutorial`. Local links, section anchors, PNG headers/dimensions and ZIP checksums were checked; each screenshot was visually inspected.
+
+`npm run check` passed lint, TypeScript, all 63 tests, the production build and package checks. The central installer installed and verified 0.5.6 in the canonical `@Nexus-dev` vault.
+
+The walkthrough was exercised inside that vault: native New thread/New entry dialogs created notes in the Base's selected folder; a continuation wrote a normal `next` link; date editing, task completion and marker removal each supported exact-content Undo. The beginner query returned five entries, two thread notes, four connections, five pending tasks and zero invalid notes. Notebook showed the same source notes and tasks. A trusted Chromium mouse connection gesture saved a link and Undo restored the note. A separate synthetic DOM drag moved the complete five-card, cross-thread flow by two days, preserved every date gap and restored every source file with Undo. This is automated in-app validation, not a physical mouse or touch session.
+
+The advanced Base showed a November 9–11 inclusive range. Its weekly source appeared on November 9, 23 and 30, omitting the configured November 16 exception; the additional-date source appeared on November 10, 12 and 17. They retained one source file per note. No mobile device was tested for this documentation change.
+
+`scripts/capture-tutorial.mjs` guards the exact canonical vault before UI input and before each evaluation. `prepare` creates the fictional capture files without overwriting an existing destination; `all` captures the guide; `workflow` exercises the downloadable empty template; `drag-flow` exercises the cross-thread move; `cleanup` retains the owned notes as `qa-archived`, checks original Markdown and `data.json`, removes temporary capture styling and restores the workspace. A local ignored session log supports `resume` after an application reload. `scripts/package-tutorial.py` creates a deterministic, LF-normalized ZIP; `--check` verifies that download against its source.
+
 ## 0.5.6 release validation — 2026-11-03
 
 This release includes the marker-removal and hover features described below. Release testing also reproduced a stuck native popup after its card was rebuilt: removing the old anchor could skip mouseout and leave native `onTarget` set. Rendering now closes the previous preview before replacing/hiding cards. Late asynchronous previews are dismissed after native show completes if a gesture is active or the surface is hidden/closed. Two added hover regressions exercise anchor replacement and a preview completing during a connection.

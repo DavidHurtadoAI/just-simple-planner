@@ -1,0 +1,19 @@
+filters:
+  and:
+    - file.inFolder("Planner tutorial/Primeros pasos")
+    - or:
+        - note.planner_type == "entry"
+        - note.planner_type == "thread"
+views:
+  - type: just-simple-planner-bases
+    name: Primer planner
+    dateProperty: note.date
+    titleProperty: note.title
+    threadProperty: note.thread
+    nextProperty: note.next
+    dayWidth: "190"
+    plannerState:
+      mode: board
+      firstDay: "2026-10-10"
+      scrollLeft: 5700
+      scrollTop: 0

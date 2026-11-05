@@ -1,0 +1,25 @@
+filters:
+  and:
+    - file.inFolder("Planner tutorial/Avanzado")
+    - note.planner_type == "entry"
+views:
+  - type: just-simple-planner-bases
+    name: Duración y repetición
+    dateProperty: note.date
+    titleProperty: note.title
+    threadProperty: note.thread
+    nextProperty: note.next
+    endDateProperty: note.end_date
+    repeatProperty: note.repeat
+    repeatUntilProperty: note.repeat_until
+    repeatExceptProperty: note.repeat_except
+    additionalDatesProperty: note.additional_dates
+    dayWidth: "190"
+    threadNotes:
+      - Planner tutorial/Primeros pasos/Proyecto Aurora.md
+      - Planner tutorial/Primeros pasos/Publicaciones.md
+    plannerState:
+      mode: board
+      firstDay: "2026-10-10"
+      scrollLeft: 5700
+      scrollTop: 0

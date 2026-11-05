@@ -2,6 +2,8 @@
 
 # Just Simple Planner
 
+**New here? [Start with the illustrated tutorial](docs/TUTORIAL.md)** · [Download the ready-to-open example](https://github.com/DavidHurtadoAI/just-simple-planner/raw/refs/heads/main/docs/downloads/planner-tutorial.zip)
+
 ### See the story of your work. Keep it in your notes.
 
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
@@ -12,7 +14,7 @@ A visual timeline for Obsidian: projects in rows, days in columns, and every car
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
 
-[Migration guide](docs/MIGRATION.md) · [Guía en español](docs/MIGRACION.es.md) · [Visual tour](#visual-tour) · [Install](#install) · [Settings](#settings) · [Try the examples](#try-the-examples) · [Markdown format](#markdown-format) · [The story and the credit](#the-story-and-the-credit)
+[Tutorial](docs/TUTORIAL.md) · [Migration guide](docs/MIGRATION.md) · [Guía en español](docs/MIGRACION.es.md) · [Visual tour](#visual-tour) · [Install](#install) · [Settings](#settings) · [Try the examples](#try-the-examples) · [Markdown format](#markdown-format) · [The story and the credit](#the-story-and-the-credit)
 
 </div>
 
@@ -293,7 +295,9 @@ No files are moved or rewritten by this migration. Folder paths, property mappin
 
 ## Try the examples
 
-Copy the contents of [`examples/`](examples) into any folder in your vault, preserving the `Entradas` and `Hilos` subfolders. Open the planner and navigate to **30 October 2026**.
+**For your first Bases planner, use the [illustrated tutorial](docs/TUTORIAL.md) and its [ready-to-open starter pack](https://github.com/DavidHurtadoAI/just-simple-planner/raw/refs/heads/main/docs/downloads/planner-tutorial.zip).** It includes a five-entry beginner planner and a separate example of date ranges, repetition and additional dates.
+
+For the original, larger classic-view demo, copy only [`examples/Entradas`](examples/Entradas) and [`examples/Hilos`](examples/Hilos) into any folder in your vault, preserving those two subfolder names. Run **Just Simple Planner: Open classic planner** and navigate to **30 October 2026**. You can then use the [migration guide](docs/MIGRATION.md) to view that collection through Bases.
 
 You get **20 entries, four threads, 18 connections and 12 pending tasks** covering a course, publications, plugin development and personal errands. Their wikilinks use note names, so the containing folder can have any name. All sample content is fictional.
 

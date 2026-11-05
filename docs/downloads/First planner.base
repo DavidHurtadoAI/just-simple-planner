@@ -1,0 +1,14 @@
+filters:
+  and:
+    - file.inFolder("Mi primer planner")
+    - or:
+        - note.planner_type == "entry"
+        - note.planner_type == "thread"
+views:
+  - type: just-simple-planner-bases
+    name: My planner
+    dateProperty: note.date
+    titleProperty: note.title
+    threadProperty: note.thread
+    nextProperty: note.next
+    dayWidth: "190"
