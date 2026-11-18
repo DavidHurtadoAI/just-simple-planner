@@ -124,47 +124,26 @@ export class PlannerSettingsTab extends PluginSettingTab {
   private sections(): SettingSection[] {
     const property = (key: EntryProperty, name: string, desc: string): SettingRow => this.text(key, name, `${desc}. Default: ${DEFAULT_PROPERTIES[key]}.`, DEFAULT_PROPERTIES[key]);
     return [
-      { heading: 'Bases transition', rows: [
-        { name: 'Classic view is deprecated', desc: 'Use the Simple Planner layout in Bases for new planners. The classic view remains available during the transition; no removal date is set. This is the same plugin and the same Markdown notes, with independent filters and settings for each Bases view.' },
-        { name: 'Create a Bases planner', desc: 'Review the current planner and create a new .base file. Existing notes and classic settings stay unchanged. Bases must be enabled.', render: setting => { setting.addButton(button => button.setButtonText('Review migration').onClick(() => this.plugin.openMigration())); } },
-        { name: 'Classic settings below', desc: 'These folders and property names apply to the classic view. Bases planners store their own property mapping and day width in each Base view and use native Bases note creation.' },
+      { heading: 'Bases planners', rows: [
+        { name: 'Plan in Bases', desc: 'Open a .base file and choose the Simple Planner layout. Each view has its own filters, property mapping, day width and native new-note destination. The classic board has been retired.' },
+        { name: 'Open a planner', desc: 'Choose an existing Simple Planner Base.', render: setting => { setting.addButton(button => button.setButtonText('Open planner').onClick(() => { void this.plugin.perform(() => this.plugin.openPlanner()); })); } },
+        { name: 'Migrate classic notes', desc: 'Review marked notes and create a new Base using the saved mapping below. Existing notes and saved settings are kept.', render: setting => { setting.addButton(button => button.setButtonText('Review migration').onClick(() => this.plugin.openMigration())); } },
       ] },
-      {
-        heading: 'New note locations', rows: [
-          { name: 'Saving settings', desc: 'Dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings. Invalid changes show an error beside the field; the last valid configuration stays active.' },
-          { name: 'Folders are storage locations, not filters', desc: 'Marked entries and threads are found anywhere in this vault. These two paths only choose where newly created notes are saved. Existing notes stay in their current folders. The former Planner folder setting has been removed; older base and subfolder paths are combined to preserve their full creation destinations. No files are moved.' },
-          this.text('threadFolder', 'Threads folder', 'Vault-relative folder for new thread notes, which store each row’s color, status and order. Default: Planner/Threads. Leave empty to create threads in the vault root. Changing this path does not hide or move existing threads.', 'Vault root'),
-          this.text('entryFolder', 'New entries folder', 'Vault-relative destination for notes created with New entry. Default: Planner/Entries. Leave empty to create them in the vault root. Notes added from the file explorer keep their original location, regardless of this setting.', 'Vault root'),
-          { name: 'Resolved new note folders', desc: this.destinationDescription(), render: setting => { this.destinations = setting; setting.setDesc(this.destinationDescription()); } },
-        ],
-      },
-      {
-        heading: 'Existing notes and membership', rows: [
-          { name: 'Only marked planner notes appear', desc: 'Cards require planner_type: entry and a valid YYYY-MM-DD date in the configured Date property. Thread notes use planner_type: thread, including empty threads. A date alone never adds a note. The thread property chooses the row; missing values appear in Unassigned. Missing titles use the filename.' },
-          { name: 'Add an existing note', desc: 'Right-click a Markdown note in the file explorer and choose Add note to planner. Or drag one note onto a thread header or notebook thread to keep its date; drop onto a day cell to propose that date. Review the exact property changes before saving. The original note stays in place and is not duplicated.' },
-          { name: 'Calendar dates are shared', desc: 'Adding a note keeps its valid existing date unless you choose another. Changing the mapped Date property also changes calendars and other views that use it. The review highlights this before saving. The date must be a day in YYYY-MM-DD format, not a date and time.' },
-          { name: 'Remove a note from the planner', desc: 'Use the file-explorer menu or the card’s menu. Removal deletes only planner_type: entry; it keeps the note, date, thread, connections and calendar properties. Undo and Redo in the planner also cover adding and removing notes. Nothing is sent outside this vault.' },
-        ],
-      },
-      {
-        heading: 'Property mapping', rows: [
-          { name: 'Use your existing frontmatter names', desc: 'Enter four different, non-empty YAML property names. The planner uses these exact keys when reading, creating, editing, moving and connecting entries. planner_type stays fixed and is reserved.' },
-          property('date', 'Date property', 'Calendar date in YYYY-MM-DD format. An entry must have a valid date under this key to appear'),
-          property('title', 'Title property', 'Text shown on the card. When the property value is empty or missing, the filename is used'),
-          property('thread', 'Thread property', 'A wikilink to a thread note, or a plain-text group name'),
-          property('next', 'Connections property', 'A YAML list of wikilinks to following entries. This controls arrows and connected flows'),
-          { name: 'Changing the mapping does not migrate notes', desc: 'Existing properties and files are not renamed or rewritten. Marked entries without a valid mapped date are counted as invalid. Session undo/redo is cleared when the property mapping changes. Thread-note properties status, color and order keep their names.' },
-        ],
-      },
-      {
-        heading: 'Display', rows: [
-          { name: 'Day width', desc: 'Default spacing between dates on the board.', render: setting => { setting.addDropdown(dropdown => {
-            dropdown.addOptions({ '140': 'Compact', '190': 'Comfortable', '250': 'Wide' });
-            const field = this.track('dayWidth', setting, dropdown.selectEl, () => Number(dropdown.getValue()), value => { dropdown.setValue(String(value)); });
-            dropdown.onChange(value => { if (!this.synchronizing) { this.edit(field); this.save(field, Number(value)); } });
-          }); } },
-        ],
-      },
+      { heading: 'Saved migration settings', rows: [
+        { name: 'Used only when migrating', desc: 'These saved values are imported into newly migrated Bases. Editing them never changes an existing Base or rewrites a note. Configure existing planners in their Base instead.' },
+        { name: 'Former creation destinations', desc: this.destinationDescription(), render: setting => { this.destinations = setting; setting.setDesc(this.destinationDescription()); } },
+        this.text('entryFolder', 'Former entries folder', 'Saved migration information only. New notes use the native Bases creation destination.', 'Vault root'),
+        this.text('threadFolder', 'Former threads folder', 'Saved migration information only. New notes use the native Bases creation destination.', 'Vault root'),
+        property('date', 'Date property', 'Classic entry date in YYYY-MM-DD format'),
+        property('title', 'Title property', 'Card title, with the filename as fallback'),
+        property('thread', 'Thread property', 'A wikilink to a thread note or a plain-text group'),
+        property('next', 'Connections property', 'A YAML list of wikilinks to following entries'),
+        { name: 'Day width', desc: 'Imported into a newly migrated Base.', render: setting => { setting.addDropdown(dropdown => {
+          dropdown.addOptions({ '140': 'Compact', '190': 'Comfortable', '250': 'Wide' });
+          const field = this.track('dayWidth', setting, dropdown.selectEl, () => Number(dropdown.getValue()), value => { dropdown.setValue(String(value)); });
+          dropdown.onChange(value => { if (!this.synchronizing) { this.edit(field); this.save(field, Number(value)); } });
+        }); } },
+      ] },
     ];
   }
 

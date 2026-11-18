@@ -1,6 +1,5 @@
 import { execFileSync, spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { verifyNativeErrors } from './qa-preview-diagnostics.mjs';
@@ -11,7 +10,7 @@ const cli = 'C:\\Program Files\\Obsidian\\Obsidian.com';
 const outputDir = path.join(repo, 'qa', 'exhaustive-' + Date.now());
 mkdirSync(outputDir, { recursive: true });
 function run(...args) {
-  const out = execFileSync(cli, ['vault=@Nexus-dev', ...args], { encoding: 'utf8', timeout: 30000, windowsHide: true }).trim();
+  const out = execFileSync(cli, ['vault=@Nexus-dev', ...args], { encoding: 'utf8', timeout: 60000, windowsHide: true }).trim();
   if (/^Error:/m.test(out)) throw Error(out);
   return out;
 }
@@ -20,29 +19,33 @@ function evaluate(code) {
   if (!out.startsWith('=>')) throw Error('No evaluation result: ' + out);
   return out.slice(2).trim();
 }
-function inventory(folder = canonical, result = new Map()) {
-  for (const entry of readdirSync(folder, { withFileTypes: true })) {
-    if (entry.name.startsWith('.') || entry.isSymbolicLink()) continue;
-    const name = path.join(folder, entry.name);
-    if (entry.isDirectory()) inventory(name, result);
-    else if (/\.(md|base)$/.test(entry.name)) result.set(path.relative(canonical, name), createHash('sha256').update(readFileSync(name)).digest('hex'));
-  }
-  return result;
+async function inventory() {
+  // Read through the running vault: it already owns the synchronized file cache.
+  // Bounded concurrency avoids serial cloud hydration from an external process.
+  const pairs = JSON.parse(evaluate(`const files=app.vault.getFiles().filter(file=>/\\.(md|base)$/.test(file.path)),result=[];
+    for(let i=0;i<files.length;i+=32)await Promise.all(files.slice(i,i+32).map(async file=>{
+      const text=await app.vault.cachedRead(file);
+      const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+      result.push([file.path,Array.from(new Uint8Array(hash),byte=>byte.toString(16).padStart(2,'0')).join('')]);
+    }));return JSON.stringify(result);`));
+  console.log('Snapshot: ' + pairs.length + ' Markdown/Base files');
+  return new Map(pairs);
 }
 if (run('vault', 'info=path') !== canonical) throw Error('Wrong vault');
-const before = inventory();
+const before = await inventory();
 const settingsPath = path.join(canonical, '.obsidian/plugins/just-simple-planner/data.json');
 const settings = readFileSync(settingsPath);
 writeFileSync(path.join(outputDir, 'baseline.json'), JSON.stringify(Object.fromEntries(before), null, 2));
 writeFileSync(path.join(outputDir, 'settings-backup.log'), settings);
 evaluate('window.__jspExhaustiveQA={layout:app.workspace.getLayout()};return true;');
 const suites = process.argv.slice(2);
-if (!suites.length) suites.push('migration-button', 'bases', 'scheduling', 'spans', 'card-sizes', 'classic-ui', 'membership', 'index', 'pan', 'modifier-pan', 'connections', 'visibility', 'removal', 'hover');
+if (!suites.length) suites.push('retirement', 'bases', 'scheduling', 'spans', 'visibility', 'removal', 'hover');
 const results = [];
 let failure;
 try {
   for (const suite of suites) {
     if (!/^[a-z-]+$/.test(suite)) throw Error('Invalid suite name');
+    if (['migration-button', 'classic-ui', 'membership', 'index', 'pan', 'modifier-pan', 'connections', 'card-sizes'].includes(suite)) throw Error('Historical classic-view driver. Use retirement or the default Bases suites for 0.6.0.');
     run('dev:debug', 'on'); run('dev:errors', 'clear');
     run('dev:cdp', 'method=Emulation.setFocusEmulationEnabled', 'params={"enabled":true}');
     console.log('\nRUN ' + suite);
@@ -72,7 +75,7 @@ finally {
   catch (error) { failure ??= error; }
   try { run('dev:cdp', 'method=Emulation.setFocusEmulationEnabled', 'params={"enabled":false}'); }
   catch (error) { failure ??= error; }
-  const after = inventory();
+  const after = await inventory();
   const changed = [...before].filter(([name, hash]) => after.get(name) !== hash).map(([name]) => name);
   const changedMarkdown = changed.filter(name => name.endsWith('.md'));
   const settingsUnchanged = readFileSync(settingsPath).equals(settings);

@@ -5,7 +5,7 @@ Reviewed on 2026-10-30 against the official [developer policies](https://docs.ob
 ## Community recommendations — 0.1.2
 
 - Release files are built and attested by [a GitHub-hosted release workflow](../.github/workflows/release.yml), then verified before those same files are published. Actions are pinned by SHA and signing/publishing permissions are job-scoped. See GitHub's [provenance documentation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
-- **Vault Enumeration** is intentional: explicitly marked notes can live anywhere. One initial cached-frontmatter pass yields every 500 files and reads bodies only for marked entry/thread notes. Metadata events discover new enrollment incrementally; resolved links refresh existing snapshots in memory. No inclusion based on date alone is available. The README explains this capability.
+- **Vault Enumeration** is limited to read-only classic migration scans. Bases queries own ordinary discovery and updates; the plugin no longer maintains a global classic index.
 - The container uses a scoped selector instead of `!important`; the package audit rejects that CSS override.
 
 ## Code and lifecycle
@@ -18,10 +18,10 @@ Version 0.5.6 was checked on 2026-11-03 with the official linter, package audit,
 - App events and persistent DOM listeners use registration helpers. Markdown previews have a render-scoped component; observers and animation frames are cleaned up. Plugin unload does not detach workspace leaves.
 - UI uses sentence case, theme variables and namespaced CSS. Inline values describe computed timeline geometry or user-selected colors. Commands have stable IDs and no default global hotkeys.
 - Settings are searchable through definitions on Obsidian 1.13+, with an imperative fallback for older supported versions. Creation paths are normalized and remain inside the vault.
-- Two English, vault-relative creation paths are storage locations only. Threads folder holds new thread notes; New entries folder holds newly created entries. Legacy base and child paths are combined without moving files. Existing marked notes are discovered anywhere; original metadata and bodies are preserved.
-- Those global settings and discovery belong to the retained, deprecated classic view. Bases uses the public registered-view/query API, per-view property selection/history and scoped body caches. Its native creation context supplies new-note locations; linked or explicit thread notes supply empty rows. It does not start the classic index merely by opening a Bases planner.
-- Migration writes only a new Base and missing parent folders. It compares the initial entries/thread metadata/connections, retains source notes/settings, rejects an existing destination and labels classic commands without changing their IDs. Deprecation is explicit in the banner, settings, review, README and bilingual guides; no removal date is set.
-- Settings autosave with inline validation, serialized saves and in-place synchronization. Property names remain configurable and reserved keys protected. Only mapping changes reset the index and history. Enrollment and removal use exact-snapshot Vault.process writes and Undo/Redo; external edits, renames and stale mappings reject the review without overwriting the note.
+- Former creation paths remain migration information. Old parent/child paths load without moving files, and edits round-trip unknown saved fields without applying the parent twice.
+- Bases uses the public registered-view/query API, per-view property selection/history and scoped body caches. Native creation supplies new-note locations; linked or explicit thread notes supply empty rows.
+- Migration writes only a new Base and missing parent folders. It compares entries/thread metadata/connections, retains source notes/settings and rejects an existing destination or stale review. The classic renderer/controller are removed; a workspace compatibility page and command IDs remain.
+- Settings autosave with inline validation, serialized saves and in-place synchronization. Property names remain configurable and reserved keys protected. Migration settings affect only a future import; each Bases session owns its mapping and history. Enrollment and removal use exact-snapshot Vault.process writes and Undo/Redo; external edits, renames and stale mappings reject the review without overwriting the note.
 
 ## Privacy, licensing and packaging
 

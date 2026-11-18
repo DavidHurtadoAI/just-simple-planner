@@ -1,5 +1,4 @@
-import { ItemView, Component, MarkdownRenderer, Menu, Notice, Platform, Scope, setIcon, type App, type WorkspaceLeaf, type HoverParent, type HoverPopover } from 'obsidian';
-import type JustSimplePlanner from './main';
+import { Component, MarkdownRenderer, Menu, Notice, Platform, Scope, setIcon, type App, type HoverParent, type HoverPopover } from 'obsidian';
 import type { PlannerController } from './controller';
 import { connected, spotlight, stackEntries, boardSpan, entryEnd, tasks, today, shiftDay, dayNumber, validDay, dateMoves, type Entry, type Thread } from './model';
 import { ConnectModal, ThreadModal } from './modals';
@@ -101,11 +100,6 @@ export class PlannerSurface extends Component implements HoverParent {
     this.contentEl.empty();
     this.contentEl.addClass('jsp-container');
     this.root = this.contentEl.createDiv({ cls: 'jsp-view', attr: { tabindex: '0', 'aria-label': 'Just Simple Planner' } });
-    if (!this.plugin.basesMode) {
-      const transition = this.root.createDiv({ cls: 'jsp-transition', attr: { role: 'note' } });
-      transition.createSpan({ text: 'Classic view (deprecated) · Still available during the Bases transition. No removal date is set. Your notes stay in place.' });
-      if (this.plugin.openMigration) this.button(transition, 'Create Bases planner', 'workflow', () => this.plugin.openMigration!());
-    }
     const toolbar = this.root.createDiv({ cls: 'jsp-toolbar' });
     const brand = toolbar.createDiv({ cls: 'jsp-brand' });
     setIcon(brand.createSpan(), PLANNER_ICON); brand.createSpan({ text: 'Just Simple Planner' });
@@ -357,7 +351,7 @@ export class PlannerSurface extends Component implements HoverParent {
       const empty = this.scroll.createDiv({ cls: 'jsp-empty' });
       const issue = this.plugin.configurationIssue();
       empty.createEl('h3', { text: issue ? 'Review planner settings' : this.plugin.entries.size || this.plugin.threads.size ? 'No matching threads' : 'Your notes, over time' });
-      empty.createEl('p', { text: issue ?? (this.plugin.basesMode ? 'This Base selects the notes. Create an entry, add a thread row or adjust the Base filters and Date property. Selected Markdown notes with a valid date appear here; a planner marker is not required.' : 'Create a thread or entry, right-click a Markdown note in the file explorer and choose Add note to planner, or drop a note here. Only marked entries with a valid configured date appear; notes can stay anywhere in the vault.') });
+      empty.createEl('p', { text: issue ?? 'This Base selects the notes. Create an entry, add a thread row or adjust the Base filters and Date property. Selected Markdown notes with a valid date appear here; a planner marker is not required.' });
       this.button(empty, 'New thread', 'plus', () => new ThreadModal(this.app, this.plugin).open());
       this.bindNoteDrop(empty, null, false);
     }
@@ -381,7 +375,7 @@ export class PlannerSurface extends Component implements HoverParent {
 
   private updateFooter(): void {
     this.footer.setText(`${this.footerSummary} · ${this.selected.size} selected · All changes are saved to Markdown`);
-    this.footer.title = this.plugin.scheduleNotice ?? '';
+    this.footer.title = [this.footer.textContent, this.plugin.scheduleNotice].filter(Boolean).join('\n');
   }
 
   private persistState(): void {
@@ -713,7 +707,7 @@ export class PlannerSurface extends Component implements HoverParent {
     this.plugin.scheduleMenu?.(menu, entry);
     menu.addSeparator();
     menu.addItem(item => item.setTitle('Remove note from planner…').setIcon('minus-circle')
-      .setDisabled(Boolean(this.plugin.basesMode) && this.app.metadataCache.getCache(entry.path)?.frontmatter?.planner_type !== 'entry')
+      .setDisabled(this.app.metadataCache.getCache(entry.path)?.frontmatter?.planner_type !== 'entry')
       .onClick(() => { void this.plugin.perform(() => this.plugin.reviewNote(this.plugin.file(entry.path), { remove: true })); }));
     menu.showAtMouseEvent(event);
   }
@@ -907,22 +901,4 @@ export class PlannerSurface extends Component implements HoverParent {
       }
     }
   }
-}
-
-/** Preserve the existing workspace type and commands throughout the transition. */
-export class PlannerView extends ItemView {
-  surface!: PlannerSurface;
-  constructor(leaf: WorkspaceLeaf, private readonly plugin: JustSimplePlanner) { super(leaf); }
-  getViewType(): string { return VIEW_TYPE; }
-  getDisplayText(): string { return 'Just Simple Planner (classic)'; }
-  getIcon(): string { return PLANNER_ICON; }
-  async onOpen(): Promise<void> {
-    await this.plugin.reloadIndex();
-    this.surface = this.addChild(new PlannerSurface(this.app, this.contentEl, this.plugin));
-  }
-  async onClose(): Promise<void> { if (this.surface) { this.removeChild(this.surface); this.surface.unload(); } this.plugin.classicViewClosed(this.leaf); }
-  getState(): Record<string, unknown> { return this.surface?.getState() ?? {}; }
-  async setState(state: Record<string, unknown>): Promise<void> { await this.surface?.setState(state); }
-  render(): void { this.surface?.render(); }
-  revealEntry(entry: Entry): void { this.surface?.revealEntry(entry); }
 }

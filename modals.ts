@@ -1,6 +1,6 @@
 import { Modal, Setting, Notice, SuggestModal, type App } from 'obsidian';
 import type { PlannerController } from './controller';
-import type { MembershipDraft } from './main';
+import type { MembershipDraft } from './controller';
 import { validDay, admissionFields, type Entry } from './model';
 
 export class EntryModal extends Modal {
@@ -45,7 +45,7 @@ export class EntryModal extends Modal {
     });
     if (titleInput) (titleInput as HTMLInputElement).focus();
   }
-  onClose(): void { this.contentEl.empty(); this.plugin.onModalClosed?.(); }
+  onClose(): void { this.contentEl.empty(); }
 }
 
 export class ThreadModal extends Modal {
@@ -66,7 +66,7 @@ export class ThreadModal extends Modal {
       })();
     }));
   }
-  onClose(): void { this.contentEl.empty(); this.plugin.onModalClosed?.(); }
+  onClose(): void { this.contentEl.empty(); }
 }
 
 export class ConnectModal extends SuggestModal<Entry> {
@@ -136,5 +136,5 @@ export class MembershipModal extends Modal {
     update();
   }
 
-  onClose(): void { this.contentEl.empty(); this.plugin.onModalClosed?.(); }
+  onClose(): void { this.contentEl.empty(); }
 }

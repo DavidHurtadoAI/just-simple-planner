@@ -36,7 +36,7 @@ try {
     const assert=(ok,msg)=>{if(!ok)throw Error(msg)},wait=async(fn)=>{for(let i=0;i<240;i++){if(fn())return;await new Promise(r=>setTimeout(r,25))}throw Error('Timed out')};
     const q=window.__jspHoverQA={p,assert,wait,layout:app.workspace.getLayout(),folder:'Pruebas/Just Simple Planner/Previsualización QA/'+Date.now(),leaves:[],notes:[],events:[],before:new Map()};
     q.errors=[];q.onError=event=>q.errors.push({message:event.message,step:q.step,mode:q.s?.mode,popover:!!q.s?.hoverPopover});window.addEventListener('error',q.onError);
-    await p.reloadIndex();for(const item of [...p.entries.values(),...p.threads.values()])q.before.set(item.path,await app.vault.read(p.file(item.path)));p.classicViewClosed();
+    for(const file of app.vault.getMarkdownFiles())if(['entry','thread'].includes(app.metadataCache.getFileCache(file)?.frontmatter?.planner_type))q.before.set(file.path,await app.vault.read(file));
     q.settingsPath=app.vault.configDir+'/plugins/just-simple-planner/data.json';q.settings=await app.vault.adapter.read(q.settingsPath);
     let folder='';for(const part of q.folder.split('/')){folder=folder?folder+'/'+part:part;if(!app.vault.getAbstractFileByPath(folder))await app.vault.createFolder(folder)}
     q.thread=q.folder+'/Hilo de previsualización QA.md';q.a=q.folder+'/Nota completa QA.md';q.b=q.folder+'/Nota arrastrable QA.md';q.target=q.folder+'/Destino del enlace QA.md';q.link=name=>'[['+name.slice(0,-3)+']]';
@@ -68,10 +68,8 @@ try {
   state(String.raw`await q.board();q.s.scroll.scrollLeft=37*140;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return true;`);
   hover('a', '2026-11-10');
   check('a later repeated appearance previews its original source note', String.raw`await q.ready('Final del contenido de previsualización QA.');assert(q.events.at(-1).linktext===q.a&&q.events.at(-1).sourcePath===q.a,'Repeated appearance changed the source path');assert(q.card(q.a,'2026-11-10'),'Later appearance missing');`);
-  state(String.raw`q.s.closeHoverPreview();const previous=app.workspace.getLeavesOfType('just-simple-planner');await q.p.openPlanner();const leaf=app.workspace.getLeavesOfType('just-simple-planner')[0];if(!previous.includes(leaf))q.leaves.push(leaf);await q.show(leaf);q.s=leaf.view.surface;await q.s.setState({mode:'board',firstDay:'2026-10-04',scrollLeft:4200,scrollTop:0,collapsed:[],activeThread:q.thread,search:'',status:'all',showTasks:false});q.s.scroll.scrollTop=0;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return true;`);
-  hover('a');
-  check('the retained classic view also opens native previews on ordinary hover', String.raw`await q.ready('Final del contenido de previsualización QA.');assert(q.events.at(-1).linktext===q.a,'Classic source path changed');`);
   state(String.raw`await q.board();return true;`);
+
   hover('b');
   check('starting a card drag closes the preview and suppresses further hover requests', String.raw`await q.ready('Contenido arrastrable QA.');const popover=q.preview(),card=q.card(q.b),data=new DataTransfer();card.dispatchEvent(new DragEvent('dragstart',{bubbles:true,cancelable:true,dataTransfer:data}));await wait(()=>!popover.isConnected).catch(()=>{throw Error('Preview still connected after close: '+JSON.stringify({parent:!!q.s.hoverPopover,dragging:!!q.s.dragging,panning:q.s.panning,linking:!!q.s.linking,opacity:getComputedStyle(popover).opacity,display:getComputedStyle(popover).display}))});assert(q.s.dragging&&!q.s.hoverPopover&&!popover.isConnected,'Drag left the preview open');const count=q.events.length;q.card(q.a).dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));assert(q.events.length===count,'Dragging emitted a hover request');card.dispatchEvent(new DragEvent('dragend',{bubbles:true,dataTransfer:data}));assert(!q.s.dragging,'Drag cancellation failed');`);
   hover('a');

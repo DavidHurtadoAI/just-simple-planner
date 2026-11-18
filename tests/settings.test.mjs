@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultSettings, loadSettings, cloneSettings, cleanFolder, validateSettings, readEntryProperties, mapEntryFields, changesIndex, creationFolder, hasLegacyScope } from '../settings.ts';
+import { defaultSettings, loadSettings, cloneSettings, cleanFolder, validateSettings, readEntryProperties, mapEntryFields, changesIndex, creationFolder, hasLegacyScope, mergeSavedSettings } from '../settings.ts';
 import { History, isEntryFrontmatter, isPlannerFrontmatter } from '../model.ts';
 
 test('English defaults are independent vault-relative creation destinations', () => {
@@ -35,6 +35,21 @@ test('empty legacy children and bases retain exact destinations', () => {
   const missing = loadSettings({ plannerFolder: 'Curso' });
   assert.equal(missing.entryFolder, 'Curso/Entries');
   assert.equal(missing.threadFolder, 'Curso/Threads');
+});
+
+test('editing migration settings preserves unknown data and never doubles a legacy parent on reload', () => {
+  const saved = { plannerFolder: 'Cursos/IA', entryFolder: 'Entradas', threadFolder: '', custom: { keep: true }, searchFolder: 'Antigua', dayWidth: 140 };
+  const before = structuredClone(saved);
+  const settings = loadSettings(saved);
+  settings.dayWidth = 250;
+  settings.propertyNames.date = 'fecha';
+  const written = mergeSavedSettings(saved, settings);
+  assert.deepEqual(saved, before);
+  assert.deepEqual(written.custom, saved.custom);
+  assert.equal(written.searchFolder, 'Antigua');
+  assert.equal('plannerFolder' in written, false);
+  assert.deepEqual(loadSettings(written), settings);
+  assert.deepEqual(loadSettings(mergeSavedSettings(written, loadSettings(written))), settings);
 });
 
 test('older separate search scopes are discarded and vault-relative creation paths survive', () => {

@@ -28,7 +28,7 @@ You will plan a small fictional project: define an objective, draft a proposal, 
 
 ## Before you start
 
-You need **Obsidian 1.10.2 or later**, **Just Simple Planner 0.5.6 or later**, and Obsidian's built-in **Bases** plugin enabled under **Settings → Core plugins**. Just Simple Calendar is independent and is not required. Enable the core **Page preview** plugin too if you want note previews on hover.
+You need **Obsidian 1.10.2 or later**, **Just Simple Planner 0.6.0 or later**, and Obsidian's built-in **Bases** plugin enabled under **Settings → Core plugins**. Just Simple Calendar is independent and is not required. Enable the core **Page preview** plugin too if you want note previews on hover.
 
 If Just Simple Planner is not installed:
 
@@ -39,7 +39,7 @@ If Just Simple Planner is not installed:
 
 When updating, replace those three files and retain your notes and `data.json`. The [README's installation section](../README.md#install) also covers release verification.
 
-**Open a `.base` file for this tutorial.** The planner ribbon icon opens the retained, deprecated **classic** view. Properties for the current layout are configured in the Base's **Configure view** panel; the plugin's global settings describe classic behavior.
+**Open a `.base` file for this tutorial.** The planner ribbon opens an existing Simple Planner Base or offers a chooser. Properties are configured in the Base's **Configure view** panel. Global saved properties are used only for migration.
 
 The guide is in English and uses the exact English control labels. Sample notes and filenames are Spanish, so you can recognize them in the screenshots. Their meaning is explained as they appear. All sample work is fictional. Your own notes can use any language.
 
@@ -370,7 +370,7 @@ For the marker-based query in this tutorial:
 
 You can also drop an existing Markdown note onto the planner to open its **Add note to planner** review. Review the date and thread before saving: changing the selected date property changes that same property in other views. The review updates the existing file; it does not override the Base's folder filter or duplicate the note.
 
-Bases can also select **unmarked** dated notes through a custom query. The layout itself does not impose an extra hidden marker requirement. We use explicit markers here to make membership, removal and the beginner example predictable. File-explorer membership actions labeled **classic** belong to the old view; use the current Base's query or its in-view review.
+Bases can also select **unmarked** dated notes through a custom query. The layout itself does not impose an extra hidden marker requirement. We use explicit markers here to make membership, removal and the beginner example predictable. File-explorer membership actions target the active Base or ask you to choose one. Its query still controls which notes appear.
 
 ### Remove a card while keeping its note
 
@@ -468,14 +468,14 @@ For an empty row that should stay visible even outside the query, click **Thread
 
 Follow the [complete migration guide](MIGRATION.md) or [guía en español](MIGRACION.es.md). Run **Just Simple Planner: Create Bases planner from classic notes**, review the counts and destination, create a new Base and wait for **Migration verified** before tailoring it.
 
-Migration reads the existing notes and creates a Base; it does not move or rewrite the notes. The classic view remains available during the transition, with no removal date set. Optional scheduling properties must be selected explicitly in the new view.
+Migration reads the existing notes and creates a Base; it does not move or rewrite the notes. The classic view has been retired; old tabs offer migration and old command IDs remain supported. Optional scheduling properties must be selected explicitly in the new view.
 
 ## 8. Troubleshooting
 
 | What you see | What to check |
 | --- | --- |
-| Simple Planner is absent from Layout | Enable the core Bases plugin and Just Simple Planner. Reload the planner if Bases was enabled after it loaded. Confirm the installed planner version is 0.5.6 or later. |
-| The classic deprecation banner appears | You opened the ribbon/classic view. Open your `.base` file and choose its Simple Planner layout, or use the migration guide for an existing classic collection. |
+| Simple Planner is absent from Layout | Enable the core Bases plugin and Just Simple Planner. Reload the planner if Bases was enabled after it loaded. Confirm the installed planner version is 0.6.0 or later. |
+| A Planner migration page appears | This is a restored classic tab. Open your `.base` file or use Review migration to create one from classic notes. |
 | The starter example is empty | Confirm `Planner tutorial` is directly under the vault root, open `Primer planner.base`, and go to `2026-11-09`. Clear planner text/status filters. |
 | A new card's file exists but no card appears | Check the Base folder/marker filters, result limit, selected Date property and its value. Then navigate to the entry's day. A note can be created successfully yet excluded by a restrictive query. |
 | The Base says 7 results but the planner says 5 entries | In the beginner example, the query includes two thread notes as well as five entry notes. Threads define rows rather than extra cards. |
@@ -522,6 +522,6 @@ Keep the first planner small. Add ranges and repetition when the work calls for 
 
 ---
 
-**About this tutorial:** written against Just Simple Planner **0.5.6**. The screenshots are real captures from desktop Obsidian **1.15.1** in the dedicated development vault; your theme, date locale and surrounding Obsidian controls can look different. The starter files, note creation, connections, movement, tasks, removal and scheduling were checked in that desktop environment. Physical mobile/touch behavior has not been verified for this guide. For exact validation scope and platform limits, see [TESTING.md](../TESTING.md).
+**About this tutorial:** written against Just Simple Planner **0.6.0**. The screenshots are real captures from desktop Obsidian **1.15.1** in the dedicated development vault; your theme, date locale and surrounding Obsidian controls can look different. The starter files, note creation, connections, movement, tasks, removal and scheduling were checked in that desktop environment. Physical mobile/touch behavior has not been verified for this guide. For exact validation scope and platform limits, see [TESTING.md](../TESTING.md).
 
 [Back to the README](../README.md) · [Download the starter pack](https://github.com/DavidHurtadoAI/just-simple-planner/raw/refs/heads/main/docs/downloads/planner-tutorial.zip) · [Migration guide](MIGRATION.md)

@@ -7,7 +7,7 @@ export default defineConfig([
   {
     languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
     rules: {
-      'obsidianmd/ui/sentence-case': ['error', { brands: ['Just Simple Planner', 'Obsidian', 'Markdown', 'Bases', 'Base'] }],
+      'obsidianmd/ui/sentence-case': ['error', { brands: ['Just Simple Planner', 'Simple Planner', 'Obsidian', 'Markdown', 'Bases', 'Base'] }],
     },
   },
 ]);

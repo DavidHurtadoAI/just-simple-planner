@@ -1,7 +1,6 @@
 import { BasesView, Component, ListValue, Modal, Notice, Setting, TFile, parsePropertyId, type App, type BasesAllOptions, type BasesEntry, type BasesPropertyId, type BasesViewConfig, type Menu, type QueryController } from 'obsidian';
-import type JustSimplePlanner from './main';
-import { pack, unpack, type MembershipDraft } from './main';
-import type { PlannerController } from './controller';
+import { pack, unpack } from './notes';
+import type { PlannerController, MembershipDraft, Patch } from './controller';
 import { EntryModal, MembershipModal } from './modals';
 import { History, connected, parseNoteDrop, today, toggleTask, validDay, wikiTarget, type Change, type Entry, type Thread } from './model';
 import { defaultSettings, mapEntryFields, validateSettings, type EntryProperty, type PlannerSettings } from './settings';
@@ -11,13 +10,11 @@ import { noteAppearances, type NoteSchedule } from './schedule-model';
 import { repeatRule } from './schedule';
 import { ScheduleModal } from './schedule-modal';
 
-type Patch = Parameters<JustSimplePlanner['patch']>[0][number];
 const PROPERTY_KEYS = { date: 'dateProperty', title: 'titleProperty', thread: 'threadProperty', next: 'nextProperty' } as const;
 const SCHEDULE_KEYS = ['endDateProperty', 'repeatProperty', 'repeatUntilProperty', 'repeatExceptProperty', 'additionalDatesProperty'] as const;
 
 /** One live query owns one editing/history session. No vault enumeration or plugin data.json. */
 export class BasesPlannerSession extends Component implements PlannerController {
-  readonly basesMode = true;
   readonly queryOrder = true;
   settings: PlannerSettings = defaultSettings();
   entries = new Map<string, Entry>();
@@ -402,7 +399,7 @@ export class BasesPlannerView extends BasesView {
   private report: HTMLElement;
   get containerWindow(): Window { return this.parentEl.win; }
 
-  constructor(controller: QueryController, private readonly parentEl: HTMLElement) {
+  constructor(controller: QueryController, readonly parentEl: HTMLElement) {
     super(controller);
     parentEl.addClass('jsp-bases-container');
     this.report = parentEl.createDiv({ cls: 'jsp-migration-report', attr: { role: 'status' } });

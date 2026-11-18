@@ -1,5 +1,31 @@
 # Validation
 
+## 0.6.0 classic retirement and compact footer — 2026-11-18
+
+The classic timeline and global editing/index controller are removed. Only the saved-tab migration page, command IDs and read-only classic migration reader remain. Migration settings retain old parent/child folder paths, property mapping, day width and unknown fields. Existing Bases continue to own their queries and edit histories.
+
+The complete `npm run check` passes zero-warning official lint, strict TypeScript, **64 unit tests**, production bundling and package validation. OneDrive dependency reads stalled the original linter, so the check ran on an exact source snapshot outside OneDrive with the same lockfile/dependencies. SHA-256 comparisons confirmed all **32 source/test/config/build files** matched the repository, including the rebuilt `main.js`. The final build is centrally installed and verified as 0.6.0 in `@Nexus-dev`.
+
+`node scripts/qa-exhaustive.mjs` passes **97 native checks across seven suites** on that installed build. Report: `qa/exhaustive-1795020561835/report.json`.
+
+| Suite | Checks |
+| --- | ---: |
+| Retirement, command compatibility, migration and footer | 14 |
+| Bases | 24 |
+| Scheduling | 15 |
+| Spans | 12 |
+| Visibility and keyboard | 8 |
+| Membership removal | 12 |
+| Native hover | 12 |
+
+The run checks SHA-256 snapshots of all pre-existing Markdown/Base files through the running vault's cache, using bounded concurrency. All **1,292 pre-existing Markdown files**, existing Bases and the settings file remain unchanged. The workspace is restored; 53 additive QA files are retained, with owned note fixtures archived. Every suite has an empty native error buffer. Older classic-only drivers are historical and are rejected by the current exhaustive runner.
+
+Retirement checks activate the actual preserved commands and migration controls. They cover restored old tabs without a board, custom mappings, empty threads, original note bytes, saved tab state, explicit Base selection for membership actions, editing/connections/tasks with exact Undo, stale source/settings reviews, existing/unsafe paths, marker removal between reviews and the disabled-Bases guard. Source scans run only on review/create; the plugin has no global note map, live classic index or global writer.
+
+The native Bases container previously reserved **60px of bottom padding**. Planner now removes that padding with a scoped selector. Its footer measures **18.55 CSS pixels**, with **0px below it**; narrow-width and Notebook checks retain a single line and an accessible full-text tooltip. `scripts/capture-compact-footer.mjs` creates a new fictional example, captures [the actual compact footer](docs/images/bases-compact-footer.png), archives only its owned notes and restores the initial workspace. The screenshot was visually inspected.
+
+This is Windows desktop integration, including trusted Chromium hover/keyboard input and DOM-driven editor/gesture checks. Physical mobile/touch devices and older Obsidian runtimes were not tested. The sections below document earlier releases and their historical drivers.
+
 ## Illustrated tutorial — 2026-11-05
 
 The English [tutorial](docs/TUTORIAL.md) has 16 real desktop Obsidian 1.15.1 captures, a five-entry beginner Base, a three-entry scheduling Base, and a separate empty Base template. The downloadable ZIP contains 13 ordinary Markdown/Base files and matches its source under `examples/tutorial`. Local links, section anchors, PNG headers/dimensions and ZIP checksums were checked; each screenshot was visually inspected.

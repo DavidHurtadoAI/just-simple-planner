@@ -89,3 +89,10 @@ export function mapEntryFields(fields: Record<string, unknown>, names: PropertyN
 export function changesIndex(before: PlannerSettings, after: PlannerSettings): boolean {
   return ENTRY_PROPERTIES.some(key => before.propertyNames[key] !== after.propertyNames[key]);
 }
+
+/** Round-trip old and unknown fields without applying a legacy parent twice. */
+export function mergeSavedSettings(saved: Record<string, unknown>, candidate: PlannerSettings): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...saved, ...validateSettings(candidate) };
+  delete result.plannerFolder;
+  return result;
+}

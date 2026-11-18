@@ -9,7 +9,7 @@
 A visual timeline for Obsidian: projects in rows, days in columns, and every card an ordinary Markdown note.
 
 [![Check plugin](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml/badge.svg)](https://github.com/DavidHurtadoAI/just-simple-planner/actions/workflows/check.yml)
-![Version](https://img.shields.io/badge/version-0.5.6-4c819a)
+![Version](https://img.shields.io/badge/version-0.6.0-4c819a)
 ![Obsidian](https://img.shields.io/badge/Obsidian-1.10.2%2B-7c3aed)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 ![Runtime dependencies](https://img.shields.io/badge/runtime_dependencies-0-0891b2)
@@ -30,26 +30,44 @@ Cards with only a title and frontmatter use a shorter height, keeping the two-li
 
 > **Inspired by [Haftio](https://www.haftio.com/).** The original deserves clear credit. This is an independent Obsidian implementation. Read [the thank-you, the apology, and the story](#the-story-and-the-credit).
 
-**New in 0.5.6:** remove a note from the planner through its right-click or three-dot menu while keeping the file and its other data, with Undo/Redo. Hover a card to see Obsidian's native preview of its properties and content. Both features work in Bases and the retained classic view. Update the same plugin; existing notes, settings and Base files are retained.
+**New in 0.6.0:** Planner now runs exclusively in **Bases**. The standalone classic timeline is retired; its migrator, saved settings and command IDs remain supported. **Enable the built-in Bases plugin before using this version.** Existing Bases planners continue working without another migration.
 
-## Bases planners and the classic-view transition
+The footer now fits on one compact line, with the full summary available on hover. Removing the native Bases bottom padding recovers **60 pixels of usable height** below the timeline.
 
-**0.5.2 introduces Simple Planner as a native Bases layout.** You can keep several planners in separate Base files or views, select notes with Bases filters, and choose date/title/thread/connections properties per view. Enable Obsidian's built-in Bases plugin; Just Simple Calendar remains independent and is not required.
+![Planner in Bases with a single-line footer and no reserved bottom padding](docs/images/bases-compact-footer.png)
 
-### Upgrading from 0.4.x: read this first
+## Bases planners and migration
 
-**The standalone classic view is deprecated, but remains available in this release. No removal date has been set.** The plugin is not deprecated. This is an update to the same plugin ID, with the same Markdown notes; you do not need another plugin or a note-format conversion.
+**Simple Planner is a native Bases layout.** You can keep several planners in separate Base files or views, select notes with Bases filters, and choose date/title/thread/connections properties per view. Enable Obsidian's built-in Bases plugin; Just Simple Calendar remains independent and is not required.
 
-Existing classic tabs, command IDs and settings remain. The ribbon icon opens **Open classic planner**. For a new planner, create/open a Base, add a view and choose **Simple Planner**. To bring an existing classic planner across:
+### Upgrading to 0.6.0
 
-1. Enable Bases, then run **Just Simple Planner: Create Bases planner from classic notes** (also available from the classic banner or **Review migration** in settings).
+**The standalone classic view has been retired.** This is the same plugin ID and the same Markdown notes. Existing Base files continue working.
+
+**Already using Bases?** Update the same plugin and reopen your existing `.base` files. Your queries, view settings and notes are retained; do not migrate those planners again.
+
+**Still using the classic timeline?** Update the same plugin, keep `data.json` and your notes, then follow these steps. The classic timeline is no longer available as a fallback in 0.6.0.
+
+1. Enable Bases, then run **Just Simple Planner: Create Bases planner from classic notes** (also available from **Review migration** in settings).
 2. Review the counts, property mapping and classic creation destinations. Choose a **new** vault-relative Base path and click **Create Base**.
 3. Wait for **Migration verified** in the new view. The initial comparison checks entry titles/dates, thread membership, connections and thread metadata, retaining empty thread rows.
 4. Compare your normal workflow, then tailor the Base filters or add other planners. Select optional scheduling properties explicitly in Configure view.
 
 Migration creates a Base that reads your existing files. It does not move, rename, duplicate or rewrite them, or replace classic settings. Classic creation folders do not become search filters. Notes remain shared: editing a note in one planner changes that same note elsewhere.
 
-Read the **[complete migration guide](docs/MIGRATION.md)** or **[guía en español](docs/MIGRACION.es.md)** for the differences between views, troubleshooting, new-note locations, returning to classic and scheduling limits.
+### Your existing shortcuts and settings
+
+| Access or setting | Behavior in 0.6.0 |
+| --- | --- |
+| Ribbon and **Open planner** | Open the active planner, an existing Base, or a chooser when several exist. If none exists, offer migration to create one. |
+| Saved classic workspace tabs | Show a migration page. Their saved display state remains available to import into a Base. |
+| Existing creation and membership commands | Keep their command IDs, so saved hotkeys still resolve. They use the active or explicitly selected Base and its property mapping. |
+| File-explorer actions | Choose a planner for showing, adding or removing a note. The Base's query still determines whether it appears. |
+| Plugin settings | Retain the old property mapping, day width and former folder destinations for migration only. Edit current planners in each Base's **Configure view**. |
+
+Old common-parent and child folder paths still load correctly. Unknown saved settings are preserved when editing migration settings. New notes use native Bases creation destinations; changing the retained global settings never changes an existing Base.
+
+Read the **[complete migration guide](docs/MIGRATION.md)** or **[guía en español](docs/MIGRACION.es.md)** for the differences between views, troubleshooting, new-note locations, retained settings and scheduling limits.
 
 ### Several planners, selected by Bases
 
@@ -89,21 +107,21 @@ Board and Notebook share the existing editor, previews, links, selection, Spotli
 ### Creation, scope and careful writes
 
 - Use the planner's **New entry** and **New thread** actions for its editor and connected continuations. These create files through native Bases creation, which chooses the folder/name and applies the Base's creation context. There are no planner-specific creation-folder settings for Bases. A restrictive filter can still exclude a newly created note; the plugin does not override the query. The native Bases **New** action keeps its own normal behavior and may need a date to be filled in.
-- New entries retain `planner_type: entry`. Existing unmarked notes are not marked merely by viewing them. **Remove note from planner…** is available from a card's right-click and three-dot menus in both layouts. It removes only that entry marker and supports Undo/Redo. Every planner filtering on the shared marker is affected; a Base selecting the note by other criteria can still show it. The action is disabled for cards without `planner_type: entry`. File-explorer membership actions remain explicitly labeled **classic**.
+- New entries retain `planner_type: entry`. Existing unmarked notes are not marked merely by viewing them. **Remove note from planner…** is available from a card's right-click and three-dot menus in Bases. It removes only that entry marker and supports Undo/Redo. Every planner filtering on the shared marker is affected; a Base selecting the note by other criteria can still show it. The action is disabled for cards without `planner_type: entry`. File-explorer membership actions target the active Base or ask you to choose one.
 - Linked thread notes are resolved directly. **Thread notes** manages explicit empty rows for this view, including notes outside its filters. Removing a row reference never deletes the note. Editing a shared thread's status/order affects that same note wherever it is used.
 - An indicator identifies connections outside the current Base results. A whole-flow move is refused until all resolved successors are included. Individual edits stay within the current query; there is no hidden global graph traversal.
 - Datetime cards use their written main day. Select **End date property** to extend each card through its inclusive final day. Overlapping date ranges stack without covering one another, retaining the short/full card heights and Base sort. Ongoing notes remain visible if they start before the loaded window; dashed edges mark ranges continuing beyond it. Notebook displays the full date range.
 - Moving a range shifts both dates and preserves the written times/offsets and duration. Dragging from a later day keeps that grabbed day under the pointer. A computed date or end date can be displayed but is not writable; invalid end dates show a warning and a one-day card.
 - Select **Repeat property** or **Additional dates property** under **Optional scheduling** to show the same note on its scheduled days. Repeat supports `daily`, `weekly`, `monthly`, `yearly`, `every 2 weeks` and compact forms such as `w2`, matching Just Simple Calendar. Optional **Repeat until** includes that last start day; **Skipped dates** omits starts on selected ISO dates. Additional dates are individual `YYYY-MM-DD` values for a single-day note without repetition. Nothing is generated on disk.
 - Scheduled appearances share the note's selection, editor, body, tasks and connections. Editing a later appearance edits the original note and main date. Connections remain one relation per note, anchored at its main appearance when loaded, otherwise its first appearance in the window. Tasks are listed once per note. Dragging or moving a flow containing scheduled notes is disabled; edit the original date/rule in the note, and use **Repeat options…** or **Additional dates…** in the card menu for configured writable limits/date lists.
-- The board loads a 91-day window; Notebook uses that window for scheduled appearances while retaining ordinary historical entries. Date navigation changes the window. Invalid schedules display warning badges and explanations in the footer tooltip. These scheduling options belong to each Bases view; the classic view keeps its original behavior.
+- The board loads a 91-day window; Notebook uses that window for scheduled appearances while retaining ordinary historical entries. Date navigation changes the window. Invalid schedules display warning badges and explanations in the footer tooltip. These scheduling options belong to each Bases view.
 - Each open view has its own history. Concurrent changes from another planner or editor cause a conflict instead of being overwritten. Mapping changes invalidate old editor saves while retaining their drafts. Closing a view releases its session and refuses new stale edits. Creating a note is not undone by deleting it.
 
-Bases supplies discovery and query updates; the new session reads bodies only for its selected Markdown notes and uses small view-scoped caches. The classic global discovery runs when the classic view or a classic/migration action needs it and stops monitoring when no classic view/action remains. Existing global settings below apply to the classic view only.
+Bases supplies discovery and query updates. Each session reads its selected Markdown bodies and owns its cache/history. Classic note discovery is a read-only scan used only during migration review and creation; there is no live classic index.
 
 ## Visual tour
 
-The controls below are shared with the classic view. These earlier screenshots illustrate the same card editor, links and task workflow; classic membership/settings are labeled separately below.
+The controls below operate in Bases. Earlier screenshots illustrate the shared card editor, connections and task workflow.
 
 ![Twenty Spanish example notes arranged in four threads, with dated cards and connections across projects](docs/images/board.png)
 
@@ -136,7 +154,7 @@ Hover an existing line to reveal **×** and disconnect it directly. The three-do
 
 ### Preview a card's note on hover
 
-Hover a card to open Obsidian's native note preview, including its properties and Markdown content, without clicking or holding Ctrl/Cmd by default. It works in the board and Notebook, in classic and Bases, including folded cards and repeated appearances of the same note. Enable the **Page preview** core plugin; its **Just Simple Planner** source controls whether a modifier key is required.
+Hover a card to open Obsidian's native note preview, including its properties and Markdown content, without clicking or holding Ctrl/Cmd by default. It works in the board and Notebook, in Bases, including folded cards and repeated appearances of the same note. Enable the **Page preview** core plugin; its **Just Simple Planner** source controls whether a modifier key is required.
 
 Moving onto card buttons or Markdown links closes the card preview and keeps those controls' own actions. Starting a card drag, a pan or a connection also closes the note preview so it does not cover the gesture. Closing the planner closes its preview. Touch devices keep their existing behavior.
 
@@ -190,7 +208,7 @@ The interface and property names are English. Notes, filenames and thread names 
 | Ctrl/Cmd-Z / Ctrl/Cmd-Shift-Z | Undo / redo while the board has focus. Ctrl/Cmd-Y also redoes. |
 | Escape | Cancel a connection, or clear selection and Spotlight. |
 
-The board extends into the past and future as you scroll, rendering a bounded 91-day window. Use **Today**, the date picker and **Earlier / Later** to navigate. Choose the column width in plugin settings under **Day width**. Filter by text and thread status; right-click a thread label to change its status or order.
+The board extends into the past and future as you scroll, rendering a bounded 91-day window. Use **Today**, the date picker and **Earlier / Later** to navigate. Choose the column width in the Base's **Configure view** under **Day width**. Filter by text and thread status; right-click a thread label to change its status or order.
 
 ## Install
 
@@ -202,7 +220,7 @@ Download the installable files from the **[latest GitHub release](https://github
 4. Enable **Bases** in Core plugins. If it was previously disabled, reload Just Simple Planner. Create or open a Base, add a view and choose **Simple Planner**.
 5. Set the Base filters and view properties, then use **New thread** and **New entry** inside the planner. Existing users can run **Create Bases planner from classic notes** instead; follow the [migration guide](docs/MIGRATION.md).
 
-**Updating an existing installation:** replace the three release files and keep your notes and plugin data. Both the deprecated classic view and the Bases layout are included.
+**Updating an existing installation:** replace only `main.js`, `manifest.json` and `styles.css`. Keep `data.json`, your notes and existing `.base` files, then reload the plugin. Enable the core Bases plugin. Existing Bases planners need no migration; classic users should follow [Upgrading to 0.6.0](#upgrading-to-060).
 
 From **0.1.2**, release files are built, checked and published by GitHub Actions with cryptographic build-provenance attestations. After downloading the three files, verify each with GitHub CLI:
 
@@ -214,30 +232,13 @@ gh attestation verify styles.css --repo DavidHurtadoAI/just-simple-planner
 
 ## Settings
 
-**The global controls below apply to the deprecated classic view.** Bases planners choose properties and day width in **Configure view** and use native Bases creation, with no planner-specific folder settings.
+Configure filters, properties and day width in each Base's **Configure view**. Native Bases creation chooses new-note destinations.
 
-Classic settings use English labels and defaults and save automatically. **Dropdowns save immediately. Text fields save when you press Enter or leave the field, including when you close settings.** Each field shows save feedback or a validation error. Invalid changes leave the last valid configuration active; a dropdown that cannot be saved returns to its active value. Folder settings from older versions are adapted as described below; zoom and property mapping are retained.
-
-### Storage folders: notes can live anywhere
-
-| Setting | Default | Meaning |
-| --- | --- | --- |
-| **Threads folder** | `Planner/Threads` | Vault-relative destination for new thread notes. Thread notes hold each row's color, status and order. |
-| **New entries folder** | `Planner/Entries` | Vault-relative destination for notes created with **New entry**. Existing notes added to the planner keep their original location. |
-
-These are storage locations, **not search filters**. Leave either path empty to create that kind of note in the vault root. Missing folders are created when the first new note is saved; absolute paths, parent traversal and paths through files are rejected.
-
-A card can be `Clientes/Acme/Reunión.md` while its thread note lives in `Planner/Threads/Acme.md`. Moving the entry or changing a creation folder never changes its membership. Marked threads are also retained if moved elsewhere in the vault.
-
-### Only notes you include become entries
-
-**In the classic view**, cards require **`planner_type: entry`** and a valid **`YYYY-MM-DD`** date in the configured **Date property**, wherever the note lives. Rows use **`planner_type: thread`**, including empty threads. A date alone never adds a classic card; **Show all dated notes remains removed**. Bases uses its query instead; the `entry OR thread` filter above gives it the same explicit membership rule.
-
-The `thread` property determines the row. Missing thread values appear under **Unassigned**. The configured title property takes precedence; an empty or missing title uses the complete filename without `.md`, including any date prefix. There is no duplicate copy and no separate membership list hidden in plugin settings.
+The plugin settings retain the old property mapping and day width **only for migration**. Former folder destinations are shown as information. Older common-base/child paths are combined on load without moving files; unknown saved fields survive edits. Editing migration settings never changes an existing Base.
 
 ### Add an existing note — keep its calendar date or review a new one
 
-Right-click one Markdown note in Obsidian's file explorer and choose **Add note to classic planner…**. The review shows its current path, date and thread, and the exact properties that will change. Existing titles, connections, calendar properties and Markdown content are kept. **Cancel writes nothing.**
+Right-click one Markdown note in Obsidian's file explorer and choose **Add note to planner…**. The review shows its current path, date and thread, and the exact properties that will change. Existing titles, connections, calendar properties and Markdown content are kept. **Cancel writes nothing.**
 
 ![Reviewing an existing Spanish note: exact property changes, original path, date and thread, with a warning about shared calendar dates](docs/images/add-existing-note.png)
 
@@ -252,23 +253,21 @@ You can also drag one note from the file explorer:
 
 Every external-note drop opens the same review before saving. Hover feedback explains the destination and that the file stays in place. One note at a time is supported; folders, files from other vaults and external filesystem imports are rejected. Dropping an already included note updates the same entry instead of creating another card.
 
-**Calendar dates are shared.** If the note already has a valid date under the configured key, it is reused. Choosing a different date updates that property in the original note, which can also move the note in a calendar or another view using the same key. The review highlights the old and new values and warns before saving. A datetime is not accepted as a planner day: choose a property containing `YYYY-MM-DD`.
+**Calendar dates are shared.** If the note already has a valid date under the configured key, it is reused. Choosing a different date updates that property in the original note, which can also move the note in a calendar or another view using the same key. The review highlights the old and new values and warns before saving. Supported datetimes retain their written time and offset when moved.
 
 Dragging a card that is already on the board still reschedules it directly, as before. Dragging a file from the explorer always opens a review.
 
 ### Remove from planner — keep the note and its calendar entry
 
-Use **Remove note from planner…** from the right-click or three-dot menu of a classic or Bases card. The review removes **only `planner_type: entry`**. The file, date, title, thread, connections, calendar properties and note body are retained. Existing wikilinks are kept; an excluded note's arrows are not drawn. **Undo / Redo** cover removal, including restoring a note that has disappeared from the Base results.
+Use **Remove note from planner…** from the right-click or three-dot menu of a Bases card. The review removes **only `planner_type: entry`**. The file, date, title, thread, connections, calendar properties and note body are retained. Existing wikilinks are kept; an excluded note's arrows are not drawn. **Undo / Redo** cover removal, including restoring a note that has disappeared from the Base results.
 
-**The marker belongs to the shared note.** Removing it affects classic and every Base whose filters require it. With the `entry OR thread` filter above, the card disappears. If a custom Base query still selects the unmarked note, it remains visible there; adjust that Base's filters to exclude it. Cards without the entry marker have the removal action disabled. The file explorer also offers **Remove note from classic planner…** for the same marker operation.
+**The marker belongs to the shared note.** Removing it affects every Base whose filters require it. With the `entry OR thread` filter above, the card disappears. If a custom Base query still selects the unmarked note, it remains visible there; adjust that Base's filters to exclude it. Cards without the entry marker have the removal action disabled. The file explorer also offers **Remove note from planner…** for the same marker operation.
 
 ![Remove note from planner review: only the entry marker is removed, with shared-filter behavior explained](docs/images/remove-from-planner.png)
 
-The command palette also provides **Add active note to classic planner** and **Remove active note from classic planner**. An included note's file menu offers **Show in classic planner**, which clears filters and reveals its card.
+The command palette also provides **Add active note to a Bases planner** and **Remove active note from a Bases planner**. An included note's file menu offers **Show in planner**, which clears filters and reveals its card.
 
-![Vault-relative creation folders and the storage-only folder model](docs/images/settings-scope.png)
 
-![Explicit enrollment, shared calendar dates and removal explained in settings](docs/images/settings-membership.png)
 
 ### Property mapping: use your existing frontmatter names
 
@@ -283,9 +282,8 @@ For example, select `scheduled`, `headline`, `project` and `following` if those 
 
 **Changing the mapping does not migrate notes.** Existing properties are not renamed or rewritten. Marked entries without a valid mapped date are counted as invalid and excluded. Missing title values use the filename; missing thread values are unassigned; missing connections produce no arrows. Restore the previous mapping to read the previous schema again, or deliberately update your notes yourself. Changes to property mapping clear session undo/redo so old actions cannot modify notes under a different configuration.
 
-**Day width** chooses the default zoom. Changes to creation folders or day width keep the current note schema and undo history.
+**Day width** is configured per Base. The saved global value is imported only when migrating.
 
-![Configurable property names and English defaults, saved automatically when editing ends](docs/images/settings-properties.png)
 
 ### Updating from 0.3.x and older versions
 
@@ -297,7 +295,7 @@ No files are moved or rewritten by this migration. Folder paths, property mappin
 
 **For your first Bases planner, use the [illustrated tutorial](docs/TUTORIAL.md) and its [ready-to-open starter pack](https://github.com/DavidHurtadoAI/just-simple-planner/raw/refs/heads/main/docs/downloads/planner-tutorial.zip).** It includes a five-entry beginner planner and a separate example of date ranges, repetition and additional dates.
 
-For the original, larger classic-view demo, copy only [`examples/Entradas`](examples/Entradas) and [`examples/Hilos`](examples/Hilos) into any folder in your vault, preserving those two subfolder names. Run **Just Simple Planner: Open classic planner** and navigate to **30 October 2026**. You can then use the [migration guide](docs/MIGRATION.md) to view that collection through Bases.
+For the original, larger demo, copy only [examples/Entradas](examples/Entradas) and [examples/Hilos](examples/Hilos) into your vault, then run **Create Bases planner from classic notes** and navigate to **30 October 2026**.
 
 You get **20 entries, four threads, 18 connections and 12 pending tasks** covering a course, publications, plugin development and personal errands. Their wikilinks use note names, so the containing folder can have any name. All sample content is fictional.
 
@@ -321,7 +319,7 @@ Revisamos el planteamiento con el equipo.
 
 | Entry property | Meaning |
 | --- | --- |
-| `planner_type: entry` | Include this note in classic and in Bases that filter on this marker. Custom Base queries may also select unmarked notes. |
+| `planner_type: entry` | Include this note in Bases that filter on this marker. Custom Base queries may also select unmarked notes. |
 | `title` | Card title; falls back to the filename. Editing it does not rename the file. |
 | `date` | Calendar day in `YYYY-MM-DD` format. Bases also accepts datetimes and uses their written day. |
 | `thread` | Wikilink to the thread note. A plain-text group is also accepted. |
@@ -344,11 +342,11 @@ Moving an entry to another folder does not change its thread. Use Obsidian's nor
 
 ## Local data and careful writes
 
-The plugin has **zero runtime package dependencies** and makes no network requests of its own. It has no account, telemetry, analytics or remote database. Bodies, dates, thread membership and connections live in Markdown. Classic settings hold its property names, creation folders and day width. Each Base view stores its own configuration; Obsidian's workspace holds the open layout.
+The plugin has **zero runtime package dependencies** and makes no network requests of its own. It has no account, telemetry, analytics or remote database. Bodies, dates, thread membership and connections live in Markdown. Retained migration settings hold the former property names, creation destinations and day width. Each Base view stores its own configuration; Obsidian's workspace holds the open layout.
 
 **Bases discovery:** the Base supplies the query results. Each view reads selected Markdown bodies and directly linked/explicit thread notes, with its own small cache and history. It does not start the classic global index.
 
-**Classic discovery:** when requested by a classic view or action, the plugin makes one initial pass over Markdown paths and cached frontmatter throughout this vault to find explicit entry/thread markers. The cache check yields periodically to keep the UI responsive. Only marked notes have their bodies read. Subsequent metadata events discover newly included notes without another whole-vault enumeration; link resolution uses existing in-memory snapshots. Manual refreshes revisit known paths. Unrelated notes are not parsed or opened on edit/rename. The community scanner can report **Vault Enumeration**, which is intentional for scattered, explicitly included notes. Nothing is uploaded or shared.
+**Classic migration discovery:** a read-only scan finds marked source notes only when a review or import is requested. It keeps no live index and never rewrites the notes. The community scanner can report **Vault Enumeration** for this intentional migration support.
 
 Writes compare the note with its snapshot before saving. A concurrent edit causes a conflict instead of being silently overwritten. Multi-note operations try to roll back earlier writes if a later write fails; a rollback conflict is reported for review. This is optimistic conflict protection, not a filesystem-wide transaction.
 
@@ -381,7 +379,7 @@ Publishing a version tag triggers [the release workflow](.github/workflows/relea
 
 The scripts that drive Obsidian's CLI are maintainer tools for the dedicated `@Nexus-dev` development vault. They guard its exact path. The public examples above can be used in your own vault without running those scripts.
 
-This version focuses on local planning. It does not connect external calendars, send background reminders, provide real-time collaboration or parse Tasks-plugin deadline syntax. Repeated appearances and additional dates are supported in Bases through Optional scheduling; classic retains its previous scheduling behavior. Physical phones/tablets, touch dragging, very large vaults and simultaneous multi-device editing have not been validated.
+This version focuses on local planning. It does not connect external calendars, send background reminders, provide real-time collaboration or parse Tasks-plugin deadline syntax. Repeated appearances and additional dates are supported through Optional scheduling. Physical phones/tablets, touch dragging, very large vaults and simultaneous multi-device editing have not been validated.
 
 Found a bug or have a useful workflow to suggest? [Open an issue](https://github.com/DavidHurtadoAI/just-simple-planner/issues). Include your Obsidian version, the gesture you tried, and what you expected to happen.
 

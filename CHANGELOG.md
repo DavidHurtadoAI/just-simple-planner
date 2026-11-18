@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 — 2026-11-18
+
+- Retire the standalone classic timeline and its global editing/index controller. Bases remains the planner UI.
+- Keep a read-only classic migrator, old command IDs, a saved-tab migration page, old folder/property settings and unknown saved fields.
+- Route the ribbon, palette and file menus to Bases; require a choice when several planner Bases exist.
+- Reject stale migration reviews after source or settings changes and retain empty threads and saved classic view state.
+- Remove native Bases bottom padding for Planner and compact the footer to one line.
+
+
 ## 0.5.6 — 2026-11-03
 
 - Add **Remove note from planner…** to both the right-click and three-dot card menus in Bases, retaining the existing classic action. Remove only `planner_type: entry`, with exact Undo/Redo and concurrent-edit protection. Preserve the file, body, dates, thread, links and scheduling properties; disable removal for unmarked cards.

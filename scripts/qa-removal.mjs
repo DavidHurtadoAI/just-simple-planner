@@ -24,7 +24,7 @@ try {
   evaluate(String.raw`
     const p=app.plugins.getPlugin('just-simple-planner'),assert=(ok,msg)=>{if(!ok)throw Error(msg)},wait=async(fn)=>{for(let i=0;i<240;i++){if(fn())return;await new Promise(r=>setTimeout(r,25))}throw Error('Timed out')};
     const q=window.__jspRemovalQA={p,assert,wait,layout:app.workspace.getLayout(),folder:'Pruebas/Just Simple Planner/Quitar entradas QA/'+Date.now(),leaves:[],notes:[],before:new Map()};
-    await p.reloadIndex();for(const item of [...p.entries.values(),...p.threads.values()])q.before.set(item.path,await app.vault.read(p.file(item.path)));p.classicViewClosed();
+    for(const file of app.vault.getMarkdownFiles())if(['entry','thread'].includes(app.metadataCache.getFileCache(file)?.frontmatter?.planner_type))q.before.set(file.path,await app.vault.read(file));
     q.settingsPath=app.vault.configDir+'/plugins/just-simple-planner/data.json';q.settings=await app.vault.adapter.read(q.settingsPath);
     let folder='';for(const part of q.folder.split('/')){folder=folder?folder+'/'+part:part;if(!app.vault.getAbstractFileByPath(folder))await app.vault.createFolder(folder)}
     q.thread=q.folder+'/Hilo de retirada QA.md';q.a=q.folder+'/Entrada programada QA.md';q.b=q.folder+'/Conexión entrante QA.md';q.unmarked=q.folder+'/Nota sin marca QA.md';q.link=name=>'[['+name.slice(0,-3)+']]';
